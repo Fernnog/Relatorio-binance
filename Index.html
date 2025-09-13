@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Relatório de Performance de Trades</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    .relatorio { border: 1px solid #eee; border-radius: 6px; padding: 1.5rem; margin-top: 2rem; background: #fafbfc; }
+    .campo { margin-bottom: 1rem; }
+    label { display: block; margin-bottom: 0.5em; font-weight: bold; }
+    input[type="number"], input[type="text"] { width: 200px; padding: 0.5em; }
+    button { padding: 0.7em 1.5em; border: none; background: #164690; color: #fff; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #2669bd; }
+  </style>
+</head>
+<body>
+  <h1>Relatório de Performance de Trades</h1>
+  <form id="upload-form">
+    <div class="campo">
+      <label for="trade-file">Upload da Planilha (.xlsx ou .csv):</label>
+      <input type="file" id="trade-file" accept=".csv, .xlsx" required />
+    </div>
+    <div class="campo">
+      <label for="capital-inicial">Capital Inicial (USDT):</label>
+      <input type="number" id="capital-inicial" required step="0.01" min="0">
+    </div>
+    <div class="campo">
+      <label for="exclusoes">Exclusões (ex: BTCTUSD, datas em YYYY-MM-DD):</label>
+      <input type="text" id="exclusoes" placeholder="(opcional)">
+    </div>
+    <button type="submit">Gerar Relatório</button>
+  </form>
+
+  <div id="relatorio" class="relatorio" style="display:none;"></div>
+
+  <script>
+    function parseExclusoes(str) {
+      if (!str) return [];
+      return str.split(',').map(c => c.trim()).filter(c => c.length > 0);
+    }
+
+    document.getElementById('upload-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const fileInput = document.getElementById('trade-file');
+      const capital = parseFloat(document.getElementById('capital-inicial').value);
+      const exclusoes = parseExclusoes(document.getElementById('exclusoes').value);
+
+      if (!fileInput.files.length) { alert('Selecione um arquivo.'); return; }
+      const file = fileInput.files[0];
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        let rows;
+        if (file.name.endsWith('.xlsx')) {
+          const data = new Uint8Array(evt.target.result);
+          const workbook = XLSX.read(data, {type: "array"});
+          const firstSheet = workbook.SheetNames[0];
+          rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], {raw: false});
+        } else if (file.name.endsWith('.csv')) {
+          rows = XLSX.utils.sheet_to_json(XLSX.read(evt.target.result, {type: 'binary'}).Sheets.Sheet1, {raw: false});
+        } else {
+          alert('Formato não suportado.');
+          return;
+        }
+
+        // Aqui: processe a consolidação das operações, pareamento FIFO, exclusões, cálculo de métricas...
+
+        // exemplo: só mostra os dados recebidos (substitua pela sua lógica depois)
+        gerarRelatorio(rows, capital, exclusoes);
+      };
+
+      if (file.name.endsWith('.xlsx')) {
+        reader.readAsArrayBuffer(file);
+      } else {
+        reader.readAsBinaryString(file);
+      }
+    });
+
+    // Função de exemplo só para printar os dados:
+    function gerarRelatorio(dados, capital, exclusoes) {
+      const container = document.getElementById('relatorio');
+      container.style.display = 'block';
+      container.innerHTML = `
+        <h3>Dados Lidos do Arquivo</h3>
+        <pre>${JSON.stringify(dados.slice(0,5), null, 2)} ... (total: ${dados.length} linhas)</pre>
+        <p><strong>Capital Inicial:</strong> ${capital}</p>
+        <p><strong>Exclusões:</strong> ${exclusoes.length ? exclusoes.join(', ') : 'nenhuma'}</p>
+        <p style="margin-top:1.5rem;color:#b99;"><em>Aqui você inclui sua lógica de agrupamento, pareamento e cálculo avançado!</em></p>
+      `;
+    }
+  </script>
+</body>
+</html>
