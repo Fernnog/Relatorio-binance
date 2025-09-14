@@ -134,3 +134,39 @@ button:hover {
     font-size: 0.97em;
   }
 }
+
+/* --- MELHORIAS ADICIONADAS --- */
+
+/* Estilo para o indicador de loading */
+.loading-indicator {
+  text-align: center;
+  padding: 2em;
+  font-size: 1.1em;
+  color: #1746a0;
+  font-weight: bold;
+}
+
+/* Título da seção de detalhes */
+.detalhes-title {
+  margin-top: 2.5em;
+  color: #1746a0;
+  border-top: 1px solid #e0e4eb;
+  padding-top: 1.5em;
+  font-size: 1.2em;
+}
+
+/* Ajustes na tabela de detalhes */
+.details-table {
+  margin-top: 1em;
+}
+
+/* Estilos para as linhas de lucro/prejuízo na tabela de detalhes */
+.details-table .win-row td {
+  background-color: #e4ffe8;
+  color: #19a557;
+}
+
+.details-table .loss-row td {
+  background-color: #fff1f0;
+  color: #c0392b;
+}
