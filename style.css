@@ -1,3 +1,82 @@
+body {
+  background: #f9fafe;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: #222;
+}
+
+.container {
+  max-width: 600px;
+  background: #fff;
+  margin: 3rem auto;
+  padding: 2em 2em 2.5em 2em;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(100,120,200,0.08);
+}
+
+h1 {
+  color: #1746a0;
+  margin-bottom: 1.7rem;
+  font-size: 2rem;
+}
+
+.campo {
+  margin-bottom: 1.1rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.3em;
+  font-weight: bold;
+}
+
+input[type="file"],
+input[type="number"],
+input[type="text"] {
+  padding: .7em .8em;
+  width: 90%;
+  background: #f2f5fb;
+  border: 1px solid #e3e6ef;
+  border-radius: 6px;
+}
+
+button {
+  padding: .9em 2.1em;
+  margin-top: .7em;
+  border: none;
+  color: #fff;
+  background: linear-gradient(90deg, #1746a0 80%, #21e6c1 100%);
+  border-radius: 7px;
+  font-size: 1.1em;
+  cursor: pointer;
+  font-weight: bold;
+  letter-spacing: .04em;
+}
+
+button:hover {
+  opacity: 0.87;
+}
+
+.relatorio {
+  margin-top: 2.2em;
+  background: #f5f7fa;
+  padding: 1.7em 2em;
+  border-radius: 8px;
+  box-shadow: 0 1px 6px #cde1ff33;
+  font-size: 1.09em;
+}
+
+.relatorio h2 {
+  color: #1746a0;
+  font-size: 1.3em;
+  margin-bottom: 1em;
+}
+
+.erro {
+  color: #c0392b;
+  margin-top: 1.2em;
+  display: none;
+}
+
 .report-table {
   width: 100%;
   border-collapse: collapse;
@@ -39,3 +118,19 @@
   transition: 0.15s;
 }
 #share-btn:hover { opacity:0.86; }
+
+/* Responsividade extra */
+@media (max-width: 700px) {
+  .container {
+    max-width: 96vw;
+    padding: 1.1em 0.6em 1.7em 0.6em;
+  }
+  .relatorio, .erro {
+    padding: 1.2em 0.7em;
+    font-size: 1em;
+  }
+  .report-table th, .report-table td {
+    padding: 0.46em 0.42em;
+    font-size: 0.97em;
+  }
+}
