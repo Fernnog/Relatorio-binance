@@ -1,111 +1,172 @@
-/* --- ESTILOS GERAIS --- */
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f0f2f5;
-    color: #333;
-    margin: 0;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+  background: #f9fafe;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: #222;
 }
 
 .container {
-    width: 100%;
-    max-width: 800px;
-    background-color: #fff;
-    padding: 25px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  background: #fff;
+  margin: 3rem auto;
+  padding: 2em 2em 2.5em 2em;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(100,120,200,0.08);
 }
 
-/* --- BOTÕES E OPÇÕES --- */
-.controles {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 25px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #e0e0e0;
+h1 {
+  color: #1746a0;
+  margin-bottom: 1.7rem;
+  font-size: 2rem;
 }
 
-#novaAnaliseBtn, #gerarRelatorioBtn {
-    background-color: #2962ff;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+.campo {
+  margin-bottom: 1.1rem;
 }
 
-#novaAnaliseBtn:hover, #gerarRelatorioBtn:hover {
-    background-color: #0039cb;
+label {
+  display: block;
+  margin-bottom: 0.3em;
+  font-weight: bold;
 }
 
-.opcoes-relatorio {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    color: #555;
-    margin-bottom: 20px;
+input[type="file"],
+input[type="number"],
+input[type="text"] {
+  padding: .7em .8em;
+  width: 90%;
+  background: #f2f5fb;
+  border: 1px solid #e3e6ef;
+  border-radius: 6px;
 }
 
-/* --- ESTILOS DOS RELATÓRIOS --- */
-h1, h2 {
-    color: #2962ff;
-    border-bottom: 2px solid #e0e0e0;
-    padding-bottom: 10px;
-    margin-top: 0;
+button {
+  padding: .9em 2.1em;
+  margin-top: .7em;
+  border: none;
+  color: #fff;
+  background: linear-gradient(90deg, #1746a0 80%, #21e6c1 100%);
+  border-radius: 7px;
+  font-size: 1.1em;
+  cursor: pointer;
+  font-weight: bold;
+  letter-spacing: .04em;
 }
 
-h2 {
-    font-size: 1.4em;
-    margin-top: 30px;
+button:hover {
+  opacity: 0.87;
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
+.relatorio {
+  margin-top: 2.2em;
+  background: #f5f7fa;
+  padding: 1.7em 2em;
+  border-radius: 8px;
+  box-shadow: 0 1px 6px #cde1ff33;
+  font-size: 1.09em;
 }
 
-th, td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid #ddd;
+.relatorio h2 {
+  color: #1746a0;
+  font-size: 1.3em;
+  margin-bottom: 1em;
 }
 
-thead th {
-    background-color: #2962ff;
-    color: white;
+.erro {
+  color: #c0392b;
+  margin-top: 1.2em;
+  display: none;
 }
 
-tbody tr:nth-child(even) {
-    background-color: #f9f9f9;
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 18px 0 22px 0;
+  box-shadow: 0 2px 16px #1746a016;
+  background: #f7fafb;
+  font-size: 1.08em;
+}
+.report-table th, .report-table td {
+  padding: 0.7em 0.9em;
+  border: 1px solid #e6e9ee;
+  text-align: left;
+}
+.report-table th {
+  background: #1746a0;
+  color: #fff;
+}
+.report-table .total-row td {
+  background: #e4ffe8;
+  color: #19a557;
+}
+.report-table .result-row td {
+  background: #eef1ff;
+  color: #1746a0;
+  font-weight: bold;
+}
+#share-btn {
+  display: block;
+  margin: 25px auto 2px auto;
+  background: linear-gradient(90deg, #21e6c1 70%, #1746a0 100%);
+  color: #fff;
+  border: none;
+  padding: 12px 27px;
+  font-size: 1.1em;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: bold;
+  letter-spacing: .03em;
+  transition: 0.15s;
+}
+#share-btn:hover { opacity:0.86; }
+
+/* Responsividade extra */
+@media (max-width: 700px) {
+  .container {
+    max-width: 96vw;
+    padding: 1.1em 0.6em 1.7em 0.6em;
+  }
+  .relatorio, .erro {
+    padding: 1.2em 0.7em;
+    font-size: 1em;
+  }
+  .report-table th, .report-table td {
+    padding: 0.46em 0.42em;
+    font-size: 0.97em;
+  }
 }
 
-.valor-lucro {
-    background-color: #e8f5e9; /* Verde claro */
-    color: #2e7d32;
-    font-weight: bold;
+/* --- MELHORIAS ADICIONADAS --- */
+
+/* Estilo para o indicador de loading */
+.loading-indicator {
+  text-align: center;
+  padding: 2em;
+  font-size: 1.1em;
+  color: #1746a0;
+  font-weight: bold;
 }
 
-.valor-prejuizo {
-    background-color: #ffebee; /* Vermelho claro */
-    color: #c62828;
-    font-weight: bold;
+/* Título da seção de detalhes */
+.detalhes-title {
+  margin-top: 2.5em;
+  color: #1746a0;
+  border-top: 1px solid #e0e4eb;
+  padding-top: 1.5em;
+  font-size: 1.2em;
 }
 
-.destaque-final {
-    background-color: #e3f2fd; /* Azul claro */
-    font-weight: bold;
-    font-size: 1.1em;
+/* Ajustes na tabela de detalhes */
+.details-table {
+  margin-top: 1em;
 }
 
-/* Classe para ocultar elementos */
-.hidden {
-    display: none;
+/* Estilos para as linhas de lucro/prejuízo na tabela de detalhes */
+.details-table .win-row td {
+  background-color: #e4ffe8;
+  color: #19a557;
+}
+
+.details-table .loss-row td {
+  background-color: #fff1f0;
+  color: #c0392b;
 }
