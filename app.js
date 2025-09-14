@@ -57,8 +57,12 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
     // Verifica exclusão por período de data
     if (exclusoes.dateRange && exclusoes.dateRange.start && exclusoes.dateRange.end) {
         const fillDate = fill.date;
-        const startDate = exclusoes.dateRange.start.toDate();
-        const endDate = exclusoes.dateRange.end.toDate();
+        
+        // --- LINHAS CORRIGIDAS ---
+        const startDate = exclusoes.dateRange.start.dateInstance;
+        const endDate = exclusoes.dateRange.end.dateInstance;
+        // --- FIM DA CORREÇÃO ---
+
         // Zera as horas para a comparação ser inclusiva do dia todo
         startDate.setHours(0,0,0,0);
         endDate.setHours(23,59,59,999);
@@ -349,10 +353,7 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
       }
       const firstSheet = workbook.SheetNames[0];
       
-      // --- LINHA CORRIGIDA ---
-      // A opção {raw: false} garante que o texto visível da célula seja lido, corrigindo o erro de formatação de data no cabeçalho.
       const data = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { header: 1, defval: "", raw: false });
-      // --- FIM DA CORREÇÃO ---
       
       const header = data[0];
       const columns = mapColumns(header);
