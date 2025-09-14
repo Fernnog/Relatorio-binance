@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Relatório de Performance de Trades</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Relatório de Performance de Trades</h1>
+    <form id="trade-form">
+      <div class="campo">
+        <label for="trade-file">Upload da Planilha (.xls, .xlsx ou .csv):</label>
+        <input type="file" id="trade-file" accept=".csv, .xls, .xlsx" required>
+      </div>
+      <div class="campo">
+        <label for="capital-inicial">Capital Inicial (USDT):</label>
+        <input type="number" id="capital-inicial" min="0" step="0.01" required>
+      </div>
+      <div class="campo">
+        <label for="exclusoes">Exclusões (ex: símbolo/data, separadas por vírgula):</label>
+        <input type="text" id="exclusoes" placeholder="Ex: BTCUSDT,2023-01-05">
+      </div>
+      <button type="submit">Gerar Relatório</button>
+    </form>
+    <div id="relatorio" class="relatorio"></div>
+    <div id="erro" class="erro"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
