@@ -326,11 +326,9 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
   const capital = Number(document.getElementById("capital-inicial").value);
   const symbolExclusions = (document.getElementById("exclusoes-symbols").value || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
   
-  // --- LINHA CORRIGIDA ---
   const startDate = datePicker.getStartDate();
   const endDate = datePicker.getEndDate();
   const dateRange = (startDate && endDate) ? { start: startDate, end: endDate } : null;
-  // --- FIM DA CORREÇÃO ---
 
   const exclusoes = { symbols: symbolExclusions, dateRange: dateRange };
 
@@ -350,7 +348,12 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
         workbook = XLSX.read(evt.target.result, { type: 'array' });
       }
       const firstSheet = workbook.SheetNames[0];
-      const data = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { header: 1, defval: "" });
+      
+      // --- LINHA CORRIGIDA ---
+      // A opção {raw: false} garante que o texto visível da célula seja lido, corrigindo o erro de formatação de data no cabeçalho.
+      const data = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { header: 1, defval: "", raw: false });
+      // --- FIM DA CORREÇÃO ---
+      
       const header = data[0];
       const columns = mapColumns(header);
       
