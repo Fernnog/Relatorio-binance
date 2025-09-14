@@ -47,16 +47,6 @@ function normalizeRow(row, columns) {
   };
 }
 
-// Calcula a média ponderada para uma "perna" da operação
-function legWAvg(arr, prop, qtyField) {
-  let tqty = 0, sum = 0;
-  arr.forEach(f => {
-    sum += f[prop] * f[qtyField];
-    tqty += f[qtyField];
-  });
-  return tqty ? sum / tqty : 0;
-}
-
 // Soma uma propriedade de um array de objetos
 function legSum(arr, prop) {
   return arr.reduce((sum, fill) => sum + Number(fill[prop] || 0), 0);
@@ -75,38 +65,7 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = []) {
     )
   ).sort((a, b) => a.date - b.date);
 
-  // ESTRATÉGIA 1 (PRIORITÁRIA): Usar o "Realized Profit" se disponível (mais preciso)
-  const hasRealizedProfit = filtered.some(f => f.rprofit !== 0);
-  if (hasRealizedProfit) {
-    let ganhos = 0, perdas = 0, fees = 0, win = 0, loss = 0, neutro = 0;
-    const operacoes = [];
-    filtered.forEach(fill => {
-      fees += fill.fee;
-      if (fill.rprofit !== 0) {
-        operacoes.push({ // Cria uma "operação" simplificada para a tabela de detalhes
-            symbol: fill.symbol,
-            entrada: [{ date: fill.date }], // Apenas para ter a data de início
-            resultado: fill.rprofit,
-            fees: fill.fee
-        });
-        if (fill.rprofit > 0) { ganhos += fill.rprofit; win++; }
-        else if (fill.rprofit < 0) { perdas += fill.rprofit; loss++; }
-        else { neutro++; }
-      }
-    });
-    const liquido = ganhos + perdas;
-    const totalOps = win + loss + neutro;
-    return {
-      total: totalOps, wins: win, losses: loss, neutros: neutro,
-      taxaAcerto: totalOps ? ((win / totalOps) * 100).toFixed(2) : '0.00',
-      ganhos: ganhos.toFixed(2), perdas: perdas.toFixed(2),
-      fees: fees.toFixed(2), liquido: liquido.toFixed(2),
-      retorno: capitalInicial ? ((liquido / capitalInicial) * 100).toFixed(2) : '0.00',
-      exclusoes, operacoes
-    };
-  }
-
-  // ESTRATÉGIA 2 (FALLBACK): Agrupamento manual de "pernas" (legs)
+  // LÓGICA UNIFICADA E CORRIGIDA: Agrupamento de "pernas" é sempre a base.
   const operacoes = [];
   const tradesBySymbol = {};
   filtered.forEach(f => {
@@ -118,6 +77,7 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = []) {
     const symbolFills = tradesBySymbol[symbol];
     if (symbolFills.length < 2) continue;
 
+    // 1. Agrupar fills consecutivos do mesmo lado em "pernas" (legs)
     const legs = [];
     let currentLeg = [];
     symbolFills.forEach(fill => {
@@ -130,30 +90,40 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = []) {
     });
     if (currentLeg.length > 0) legs.push(currentLeg);
 
+    // 2. Tentar parear pernas consecutivas
     for (let i = 0; i < legs.length - 1; i++) {
       const entryLeg = legs[i];
       const exitLeg = legs[i + 1];
       const qtyIn = legSum(entryLeg, 'qty');
       const qtyOut = legSum(exitLeg, 'qty');
 
-      if (Math.abs(qtyIn - qtyOut) < 1e-8) {
+      if (Math.abs(qtyIn - qtyOut) < 1e-8) { // Quantidades correspondem?
         const allFills = [...entryLeg, ...exitLeg];
         const [buys, sells] = entryLeg[0].side === 'BUY' ? [entryLeg, exitLeg] : [exitLeg, entryLeg];
         
+        // 3. CÁLCULO DE RESULTADO INTELIGENTE:
+        // Prioriza a soma do 'Realized Profit' se disponível. Senão, calcula manualmente.
+        const totalRProfit = legSum(allFills, 'rprofit');
+        const hasRProfitData = allFills.some(f => f.rprofit !== 0);
+
+        const resultadoCalculado = hasRProfitData
+          ? totalRProfit
+          : legSum(sells, "amount") - legSum(buys, "amount") - legSum(allFills, "fee");
+
         operacoes.push({
           symbol: symbol,
           entrada: buys,
           saida: sells,
           totalQty: qtyIn,
           fees: legSum(allFills, "fee"),
-          resultado: legSum(sells, "amount") - legSum(buys, "amount") - legSum(allFills, "fee"),
+          resultado: resultadoCalculado,
         });
-        i++;
+        i++; // Pula a próxima perna, pois já foi usada no par
       }
     }
   }
 
-  // Resumo financeiro final para a estratégia de fallback
+  // Resumo financeiro final
   let ganhos = 0, perdas = 0, fees = 0, lucro = 0, win = 0, loss = 0, neutro = 0;
   operacoes.forEach(op => {
     fees += op.fees;
