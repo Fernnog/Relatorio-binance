@@ -133,6 +133,28 @@ button:hover {
     padding: 0.46em 0.42em;
     font-size: 0.97em;
   }
+  
+  /* --- MELHORIAS DE RESPONSIVIDADE ADICIONADAS --- */
+  input[type="file"],
+  input[type="number"],
+  input[type="text"] {
+    width: 100%; /* Ocupa a largura total para facilitar */
+    box-sizing: border-box; /* Garante que padding não quebre o layout */
+  }
+
+  button {
+    width: 100%;
+    margin-bottom: 0.5em; /* Espaçamento entre botões empilhados */
+  }
+
+  #reset-btn {
+    margin-left: 0;
+  }
+
+  .report-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 /* --- MELHORIAS ADICIONADAS --- */
@@ -189,3 +211,9 @@ button:hover {
   border-radius: 8px;
   box-shadow: 0 2px 16px #1746a016;
 }
+
+/* Estilos para os novos controles de filtro do relatório */
+.report-controls {
+  margin-bottom: 1.5em;
+  padding: 1em;
+  bac

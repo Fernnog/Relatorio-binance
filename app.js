@@ -1,36 +1,27 @@
 let capitalChartInstance = null; // Para controlar a instância do gráfico
+let fullReportData = null;       // Para armazenar o resultado completo da análise
+let datePicker = null;           // Para a instância do calendário
 
 // --- 1. FUNÇÕES DE UTILIDADE ---
 // Responsáveis por tarefas pequenas e reutilizáveis de formatação e cálculo.
 
-// Identificação automática dos headers, considerando português e inglês
 function mapColumns(headerRow) {
   const col = {};
   headerRow.forEach((h, i) => {
     const l = h.toString().trim().toLowerCase();
-    // Datas
     if (!col.date && (l.includes('date') || l.includes('data'))) col.date = i;
-    // Símbolo (par ou ativo)
     if (!col.symbol && (l.includes('symbol') || l.includes('símbolo') || l.includes('par') || l.includes('ativo'))) col.symbol = i;
-    // Lado da operação (buy/sell)
     if (!col.side && (l.includes('side') || l.includes('operação') || l.includes('tipo') || l.includes('ação'))) col.side = i;
-    // Preço
     if (!col.price && (l.includes('price') || l.includes('preço') || l.includes('valor unit') || l.includes('cotação'))) col.price = i;
-    // Quantidade
     if (!col.qty && (l.includes('quant') || l.includes('qtd') || l.includes('quantity') || l.includes('quantidade'))) col.qty = i;
-    // Taxa
     if (!col.fee && (l.includes('fee') || l.includes('taxa') || l.includes('comissão') || l.includes('commission'))) col.fee = i;
-    // Valor total/Notional
     if (!col.amount && (l.includes('amount') || l.includes('valor total') || l.includes('notional') || l.includes('total'))) col.amount = i;
-    // Lucro/Prejuízo realizado
     if (!col.rprofit && (l.includes('lucro') || l.includes('profit') || l.includes('pnl') || l.includes('realiz'))) col.rprofit = i;
-    // Moeda da taxa (opcional)
     if (!col.fee_coin && (l.includes('fee coin') || l.includes('fee currency') || l.includes('moeda taxa'))) col.fee_coin = i;
   });
   return col;
 }
 
-// Transforma linha crua em objeto estruturado
 function normalizeRow(row, columns) {
   function safeGet(idx) {
     return (row[idx] !== undefined && row[idx] !== null) ? row[idx] : '';
@@ -49,25 +40,35 @@ function normalizeRow(row, columns) {
   };
 }
 
-// Soma uma propriedade de um array de objetos
 function legSum(arr, prop) {
   return arr.reduce((sum, fill) => sum + Number(fill[prop] || 0), 0);
 }
 
 
 // --- 2. LÓGICA DE NEGÓCIO (O ANALISADOR) ---
-// Responsável pelo processamento e análise dos dados dos trades.
 
-function analisarOperacoes(fills, capitalInicial, exclusoes = []) {
+function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
   // Filtro de exclusões e ordenação por data
-  let filtered = fills.filter(fill =>
-    !exclusoes.some(exc =>
-      fill.symbol.toLowerCase().includes(exc.toLowerCase()) ||
-      fill.date.toISOString().slice(0, 10).includes(exc)
-    )
-  ).sort((a, b) => a.date - b.date);
+  let filtered = fills.filter(fill => {
+    // Verifica exclusão por símbolo
+    const symbolExcluded = (exclusoes.symbols || []).some(exc => fill.symbol.toLowerCase().includes(exc));
+    if (symbolExcluded) return false;
 
-  // LÓGICA UNIFICADA E CORRIGIDA: Agrupamento de "pernas" é sempre a base.
+    // Verifica exclusão por período de data
+    if (exclusoes.dateRange && exclusoes.dateRange.start && exclusoes.dateRange.end) {
+        const fillDate = fill.date;
+        const startDate = exclusoes.dateRange.start.toDate();
+        const endDate = exclusoes.dateRange.end.toDate();
+        // Zera as horas para a comparação ser inclusiva do dia todo
+        startDate.setHours(0,0,0,0);
+        endDate.setHours(23,59,59,999);
+        if (fillDate >= startDate && fillDate <= endDate) {
+            return false;
+        }
+    }
+    return true; // Mantém o fill se não houver exclusão
+  }).sort((a, b) => a.date - b.date);
+
   const operacoes = [];
   const tradesBySymbol = {};
   filtered.forEach(f => {
@@ -79,7 +80,6 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = []) {
     const symbolFills = tradesBySymbol[symbol];
     if (symbolFills.length < 2) continue;
 
-    // 1. Agrupar fills consecutivos do mesmo lado em "pernas" (legs)
     const legs = [];
     let currentLeg = [];
     symbolFills.forEach(fill => {
@@ -92,19 +92,16 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = []) {
     });
     if (currentLeg.length > 0) legs.push(currentLeg);
 
-    // 2. Tentar parear pernas consecutivas
     for (let i = 0; i < legs.length - 1; i++) {
       const entryLeg = legs[i];
       const exitLeg = legs[i + 1];
       const qtyIn = legSum(entryLeg, 'qty');
       const qtyOut = legSum(exitLeg, 'qty');
 
-      if (Math.abs(qtyIn - qtyOut) < 1e-8) { // Quantidades correspondem?
+      if (Math.abs(qtyIn - qtyOut) < 1e-8) {
         const allFills = [...entryLeg, ...exitLeg];
         const [buys, sells] = entryLeg[0].side === 'BUY' ? [entryLeg, exitLeg] : [exitLeg, entryLeg];
         
-        // 3. CÁLCULO DE RESULTADO INTELIGENTE:
-        // Prioriza a soma do 'Realized Profit' se disponível. Senão, calcula manualmente.
         const totalRProfit = legSum(allFills, 'rprofit');
         const hasRProfitData = allFills.some(f => f.rprofit !== 0);
 
@@ -120,57 +117,89 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = []) {
           fees: legSum(allFills, "fee"),
           resultado: resultadoCalculado,
         });
-        i++; // Pula a próxima perna, pois já foi usada no par
+        i++;
       }
     }
   }
 
-  // LOGICA ADICIONADA: Ordenar operações por data de início para o gráfico
   operacoes.sort((a, b) => new Date(a.entrada[0].date) - new Date(b.entrada[0].date));
 
-  // Resumo financeiro final
-  let ganhos = 0, perdas = 0, fees = 0, lucro = 0, win = 0, loss = 0, neutro = 0;
+  return recalcularResumo(operacoes, capitalInicial);
+}
 
-  // LOGICA ADICIONADA: Preparar dados para o gráfico de evolução
-  const capitalEvolution = [{
-    date: 'Início',
-    capital: capitalInicial
-  }];
-  let capitalAtual = capitalInicial;
+// Recalcula as métricas com base num conjunto de operações (usado para o filtro)
+function recalcularResumo(operacoes, capitalInicial) {
+    let ganhos = 0, perdas = 0, fees = 0, lucro = 0, win = 0, loss = 0, neutro = 0;
+    const capitalEvolution = [{ date: 'Início', capital: capitalInicial }];
+    let capitalAtual = capitalInicial;
 
-  operacoes.forEach(op => {
-    fees += op.fees;
-    if (op.resultado > 0) { ganhos += op.resultado; win++; }
-    else if (op.resultado < 0) { perdas += op.resultado; loss++; }
-    else neutro++;
-    lucro += op.resultado;
-    
-    // Adiciona ponto de dados ao gráfico
-    capitalAtual += op.resultado;
-    capitalEvolution.push({
-      date: new Date(op.entrada[0].date).toLocaleDateString('pt-BR'),
-      capital: capitalAtual
+    operacoes.forEach(op => {
+        fees += op.fees;
+        if (op.resultado > 0) { ganhos += op.resultado; win++; }
+        else if (op.resultado < 0) { perdas += op.resultado; loss++; }
+        else neutro++;
+        lucro += op.resultado;
+        capitalAtual += op.resultado;
+        capitalEvolution.push({
+            date: new Date(op.entrada[0].date).toLocaleDateString('pt-BR'),
+            capital: capitalAtual
+        });
     });
-  });
 
-  return {
-    total: operacoes.length, wins: win, losses: loss, neutros: neutro,
-    taxaAcerto: operacoes.length ? ((win / operacoes.length) * 100).toFixed(2) : '0.00',
-    ganhos: ganhos.toFixed(2), perdas: perdas.toFixed(2),
-    fees: fees.toFixed(2), liquido: lucro.toFixed(2),
-    retorno: operacoes.length && capitalInicial ? ((lucro / capitalInicial) * 100).toFixed(2) : '0.00',
-    exclusoes, operacoes,
-    capitalEvolution // Retorna os dados do gráfico
-  };
+    return {
+        total: operacoes.length, wins: win, losses: loss, neutros: neutro,
+        taxaAcerto: operacoes.length ? ((win / operacoes.length) * 100).toFixed(2) : '0.00',
+        ganhos: ganhos.toFixed(2), perdas: perdas.toFixed(2),
+        fees: fees.toFixed(2), liquido: lucro.toFixed(2),
+        retorno: operacoes.length && capitalInicial ? ((lucro / capitalInicial) * 100).toFixed(2) : '0.00',
+        operacoes, capitalEvolution
+    };
 }
 
 
 // --- 3. RENDERIZAÇÃO E MANIPULAÇÃO DO DOM ---
-// Funções que interagem diretamente com o HTML para exibir os resultados.
 
-function renderReport(r) {
-  const reportElement = document.getElementById('relatorio');
-  reportElement.innerHTML = `
+// Cria o layout do relatório e os controles de filtro
+function renderLayoutAndControls(reportData) {
+    const reportElement = document.getElementById('relatorio');
+    reportElement.innerHTML = `
+        <div class="report-controls" id="report-controls"></div>
+        <div id="report-content"></div>
+    `;
+    renderReportControls(fullReportData.operacoes); // Usa os dados completos para popular os filtros
+    updateReportView(reportData); // Renderiza a visão inicial
+}
+
+// Popula o container de filtros e adiciona o listener
+function renderReportControls(operacoes) {
+    const controlsContainer = document.getElementById('report-controls');
+    const uniqueSymbols = ['-- TODOS OS ATIVOS --', ...new Set(operacoes.map(op => op.symbol))];
+
+    controlsContainer.innerHTML = `
+        <label for="symbol-filter">Filtrar por Ativo:</label>
+        <select id="symbol-filter">
+            ${uniqueSymbols.map(s => `<option value="${s}">${s}</option>`).join('')}
+        </select>
+    `;
+
+    document.getElementById('symbol-filter').addEventListener('change', function(e) {
+        const selectedSymbol = e.target.value;
+        const originalOps = fullReportData.operacoes;
+        
+        const filteredOps = (selectedSymbol === '-- TODOS OS ATIVOS --')
+            ? originalOps
+            : originalOps.filter(op => op.symbol === selectedSymbol);
+
+        const capitalInicial = Number(document.getElementById("capital-inicial").value);
+        const newSummary = recalcularResumo(filteredOps, capitalInicial);
+        updateReportView(newSummary);
+    });
+}
+
+// Atualiza a visualização do relatório (tabelas, gráfico)
+function updateReportView(r) {
+  const contentElement = document.getElementById('report-content');
+  contentElement.innerHTML = `
     <div id="report-summary-wrapper">
       <h2>RELATÓRIO DE PERFORMANCE DE TRADES</h2>
       <table class="report-table">
@@ -192,18 +221,16 @@ function renderReport(r) {
     <button id="share-btn">Compartilhar como imagem</button>
   `;
 
-  renderCapitalChart(r.capitalEvolution); // Chama a função do gráfico
+  renderCapitalChart(r.capitalEvolution);
   renderOperacoesDetalhadas(r.operacoes);
   document.getElementById('reset-btn').style.display = 'inline-block';
 
-  // Compartilhar como imagem
   const shareButton = document.getElementById('share-btn');
   shareButton.onclick = function() {
-    // Alvo da captura de tela foi alterado para o novo wrapper
     const summaryElement = document.getElementById('report-summary-wrapper');
-    shareButton.style.display = 'none'; // Oculta o botão
+    shareButton.style.display = 'none';
     html2canvas(summaryElement).then(function(canvas) {
-      shareButton.style.display = 'block'; // Reexibe o botão
+      shareButton.style.display = 'block';
       let img = canvas.toDataURL('image/png');
       let w = window.open('');
       w.document.write('<img src="' + img + '" style="max-width:100%;">');
@@ -213,7 +240,7 @@ function renderReport(r) {
 
 function renderCapitalChart(evolutionData) {
     if (capitalChartInstance) {
-        capitalChartInstance.destroy(); // Destrói gráfico antigo se existir
+        capitalChartInstance.destroy();
     }
     const container = document.getElementById('capital-chart-container');
     container.innerHTML = '<h3>Evolução do Capital</h3><canvas id="capital-chart"></canvas>';
@@ -283,7 +310,6 @@ function renderOperacoesDetalhadas(operacoes) {
 
 
 // --- 4. PONTO DE ENTRADA E CONTROLE DE EVENTOS ---
-// O código que "cola" tudo, escutando eventos do usuário e orquestrando as chamadas.
 
 document.getElementById("trade-form").addEventListener("submit", function(e) {
   e.preventDefault();
@@ -298,7 +324,9 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
 
   const fileInput = document.getElementById("trade-file");
   const capital = Number(document.getElementById("capital-inicial").value);
-  const exclusoes = (document.getElementById("exclusoes").value || '').split(',').map(s => s.trim()).filter(Boolean);
+  const symbolExclusions = (document.getElementById("exclusoes-symbols").value || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  const dateRange = datePicker.getDateRange();
+  const exclusoes = { symbols: symbolExclusions, dateRange: dateRange };
 
   if (!fileInput.files.length) {
       loading.style.display = 'none';
@@ -325,13 +353,16 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
       }
       
       const fills = data.slice(1).filter(row => row.length > 0 && row[columns.date]).map(row => normalizeRow(row, columns));
+      
       const resumo = analisarOperacoes(fills, capital, exclusoes);
-      renderReport(resumo);
+      fullReportData = resumo; // Armazena o resultado completo
+      renderLayoutAndControls(resumo); // Renderiza o layout e o relatório inicial
+      
     } catch (err) {
       erroDiv.innerHTML = "Erro ao analisar arquivo: <br>" + err;
       erroDiv.style.display = 'block';
     } finally {
-      loading.style.display = 'none'; // Garante que o loading suma, mesmo com erro
+      loading.style.display = 'none';
     }
   };
 
@@ -348,26 +379,44 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
   }
 });
 
+// Inicializa o calendário quando o DOM estiver pronto
+document.addEventListener('DOMContentLoaded', function() {
+    datePicker = new Litepicker({
+        element: document.getElementById('exclusoes-dates'),
+        singleMode: false,
+        allowRepick: true,
+        lang: 'pt-BR',
+        tooltipText: {
+            one: 'dia',
+            other: 'dias'
+        },
+        buttonText: {
+            previousMonth: `<svg width="11" height="16" xmlns="http://www.w3.org/2000/svg"><path d="M11 0v16L0 8z" fill="#1746a0"/></svg>`,
+            nextMonth: `<svg width="11" height="16" xmlns="http://www.w3.org/2000/svg"><path d="M0 0v16l11-8z" fill="#1746a0"/></svg>`,
+            reset: 'Limpar',
+            apply: 'Aplicar',
+        },
+    });
+});
+
 
 // --- 5. FUNCIONALIDADE DE REINÍCIO ---
 document.getElementById("reset-btn").addEventListener("click", function() {
     if (confirm("Tem certeza que deseja limpar o relatório e começar uma nova análise?")) {
-        // Limpa o formulário
         document.getElementById("trade-form").reset();
+        if (datePicker) { datePicker.clearSelection(); }
 
-        // Limpa as divs de resultado e erro
         document.getElementById("relatorio").innerHTML = '';
         const erroDiv = document.getElementById("erro");
         erroDiv.innerHTML = '';
         erroDiv.style.display = 'none';
         
-        // Destrói a instância do gráfico para liberar memória
         if (capitalChartInstance) {
             capitalChartInstance.destroy();
             capitalChartInstance = null;
         }
-
-        // Esconde o próprio botão de reiniciar
+        
+        fullReportData = null;
         this.style.display = 'none';
     }
 });
