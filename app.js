@@ -325,7 +325,13 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
   const fileInput = document.getElementById("trade-file");
   const capital = Number(document.getElementById("capital-inicial").value);
   const symbolExclusions = (document.getElementById("exclusoes-symbols").value || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-  const dateRange = datePicker.getDateRange();
+  
+  // --- LINHA CORRIGIDA ---
+  const startDate = datePicker.getStartDate();
+  const endDate = datePicker.getEndDate();
+  const dateRange = (startDate && endDate) ? { start: startDate, end: endDate } : null;
+  // --- FIM DA CORREÇÃO ---
+
   const exclusoes = { symbols: symbolExclusions, dateRange: dateRange };
 
   if (!fileInput.files.length) {
