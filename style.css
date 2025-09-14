@@ -170,3 +170,22 @@ button:hover {
   background-color: #fff1f0;
   color: #c0392b;
 }
+
+/* --- NOVOS ESTILOS --- */
+.report-table .loss-total-row td {
+  background: #fff1f0;
+  color: #c0392b;
+}
+
+#reset-btn {
+  background: #6c757d;
+  margin-left: 0.5em;
+}
+
+#capital-chart-container {
+  margin-top: 2.5em;
+  padding: 1.5em 1em;
+  background: #fdfdff;
+  border-radius: 8px;
+  box-shadow: 0 2px 16px #1746a016;
+}

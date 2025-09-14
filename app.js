@@ -1,3 +1,5 @@
+let capitalChartInstance = null; // Para controlar a instância do gráfico
+
 // --- 1. FUNÇÕES DE UTILIDADE ---
 // Responsáveis por tarefas pequenas e reutilizáveis de formatação e cálculo.
 
@@ -123,14 +125,32 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = []) {
     }
   }
 
+  // LOGICA ADICIONADA: Ordenar operações por data de início para o gráfico
+  operacoes.sort((a, b) => new Date(a.entrada[0].date) - new Date(b.entrada[0].date));
+
   // Resumo financeiro final
   let ganhos = 0, perdas = 0, fees = 0, lucro = 0, win = 0, loss = 0, neutro = 0;
+
+  // LOGICA ADICIONADA: Preparar dados para o gráfico de evolução
+  const capitalEvolution = [{
+    date: 'Início',
+    capital: capitalInicial
+  }];
+  let capitalAtual = capitalInicial;
+
   operacoes.forEach(op => {
     fees += op.fees;
     if (op.resultado > 0) { ganhos += op.resultado; win++; }
     else if (op.resultado < 0) { perdas += op.resultado; loss++; }
     else neutro++;
     lucro += op.resultado;
+    
+    // Adiciona ponto de dados ao gráfico
+    capitalAtual += op.resultado;
+    capitalEvolution.push({
+      date: new Date(op.entrada[0].date).toLocaleDateString('pt-BR'),
+      capital: capitalAtual
+    });
   });
 
   return {
@@ -139,7 +159,8 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = []) {
     ganhos: ganhos.toFixed(2), perdas: perdas.toFixed(2),
     fees: fees.toFixed(2), liquido: lucro.toFixed(2),
     retorno: operacoes.length && capitalInicial ? ((lucro / capitalInicial) * 100).toFixed(2) : '0.00',
-    exclusoes, operacoes
+    exclusoes, operacoes,
+    capitalEvolution // Retorna os dados do gráfico
   };
 }
 
@@ -150,37 +171,76 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = []) {
 function renderReport(r) {
   const reportElement = document.getElementById('relatorio');
   reportElement.innerHTML = `
-    <h2>RELATÓRIO DE PERFORMANCE DE TRADES</h2>
-    <table class="report-table">
-      <tr><th>Métrica</th><th>Valor</th></tr>
-      <tr><td>Total de Operações Analisadas</td><td><b>${r.total}</b></td></tr>
-      <tr><td>Operações com Lucro</td><td>${r.wins}</td></tr>
-      <tr><td>Operações com Prejuízo</td><td>${r.losses}</td></tr>
-      <tr><td>Operações Neutras</td><td>${r.neutros}</td></tr>
-      <tr><td>Taxa de Acerto</td><td>${r.taxaAcerto}%</td></tr>
-      <tr class="total-row"><td>Ganhos Totais</td><td>+${r.ganhos} USDT</td></tr>
-      <tr class="total-row"><td>Prejuízos Totais</td><td>${r.perdas} USDT</td></tr>
-      <tr><td>Total de Taxas Pagas</td><td>${r.fees} USDT</td></tr>
-      <tr class="result-row"><td>Resultado Líquido Final</td><td><b>${r.liquido} USDT</b></td></tr>
-      <tr class="result-row"><td>Retorno sobre Capital Inicial</td><td><b>${r.retorno}%</b></td></tr>
-    </table>
+    <div id="report-summary-wrapper">
+      <h2>RELATÓRIO DE PERFORMANCE DE TRADES</h2>
+      <table class="report-table">
+        <tr><th>Métrica</th><th>Valor</th></tr>
+        <tr><td>Total de Operações Analisadas</td><td><b>${r.total}</b></td></tr>
+        <tr><td>Operações com Lucro</td><td>${r.wins}</td></tr>
+        <tr><td>Operações com Prejuízo</td><td>${r.losses}</td></tr>
+        <tr><td>Operações Neutras</td><td>${r.neutros}</td></tr>
+        <tr><td>Taxa de Acerto</td><td>${r.taxaAcerto}%</td></tr>
+        <tr class="total-row"><td>Ganhos Totais</td><td>+${r.ganhos} USDT</td></tr>
+        <tr class="loss-total-row"><td>Prejuízos Totais</td><td>${r.perdas} USDT</td></tr>
+        <tr><td>Total de Taxas Pagas</td><td>${r.fees} USDT</td></tr>
+        <tr class="result-row"><td>Resultado Líquido Final</td><td><b>${r.liquido} USDT</b></td></tr>
+        <tr class="result-row"><td>Retorno sobre Capital Inicial</td><td><b>${r.retorno}%</b></td></tr>
+      </table>
+    </div>
+    <div id="capital-chart-container"></div>
     <div id="operacoes-detalhadas"></div>
     <button id="share-btn">Compartilhar como imagem</button>
   `;
 
+  renderCapitalChart(r.capitalEvolution); // Chama a função do gráfico
   renderOperacoesDetalhadas(r.operacoes);
+  document.getElementById('reset-btn').style.display = 'inline-block';
 
   // Compartilhar como imagem
   const shareButton = document.getElementById('share-btn');
   shareButton.onclick = function() {
+    // Alvo da captura de tela foi alterado para o novo wrapper
+    const summaryElement = document.getElementById('report-summary-wrapper');
     shareButton.style.display = 'none'; // Oculta o botão
-    html2canvas(reportElement).then(function(canvas) {
+    html2canvas(summaryElement).then(function(canvas) {
       shareButton.style.display = 'block'; // Reexibe o botão
       let img = canvas.toDataURL('image/png');
       let w = window.open('');
       w.document.write('<img src="' + img + '" style="max-width:100%;">');
     });
   }
+}
+
+function renderCapitalChart(evolutionData) {
+    if (capitalChartInstance) {
+        capitalChartInstance.destroy(); // Destrói gráfico antigo se existir
+    }
+    const container = document.getElementById('capital-chart-container');
+    container.innerHTML = '<h3>Evolução do Capital</h3><canvas id="capital-chart"></canvas>';
+    
+    const ctx = document.getElementById('capital-chart').getContext('2d');
+    const labels = evolutionData.map(d => d.date);
+    const data = evolutionData.map(d => d.capital.toFixed(2));
+
+    capitalChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Capital (USDT)',
+                data: data,
+                borderColor: '#1746a0',
+                backgroundColor: '#1746a020',
+                tension: 0.1,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { ticks: { callback: value => '$' + value } } }
+        }
+    });
 }
 
 function renderOperacoesDetalhadas(operacoes) {
@@ -286,4 +346,28 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
   } else {
     reader.readAsArrayBuffer(file);
   }
+});
+
+
+// --- 5. FUNCIONALIDADE DE REINÍCIO ---
+document.getElementById("reset-btn").addEventListener("click", function() {
+    if (confirm("Tem certeza que deseja limpar o relatório e começar uma nova análise?")) {
+        // Limpa o formulário
+        document.getElementById("trade-form").reset();
+
+        // Limpa as divs de resultado e erro
+        document.getElementById("relatorio").innerHTML = '';
+        const erroDiv = document.getElementById("erro");
+        erroDiv.innerHTML = '';
+        erroDiv.style.display = 'none';
+        
+        // Destrói a instância do gráfico para liberar memória
+        if (capitalChartInstance) {
+            capitalChartInstance.destroy();
+            capitalChartInstance = null;
+        }
+
+        // Esconde o próprio botão de reiniciar
+        this.style.display = 'none';
+    }
 });
