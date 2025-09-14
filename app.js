@@ -158,17 +158,14 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
       const firstSheet = workbook.SheetNames[0];
       const data = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { header: 1, defval: "" });
       const header = data[0];
-      console.log('Cabeçalho detectado:', header); // Ajuda debug no console
       const columns = mapColumns(header);
       // Vericação: são obrigatórias data, symbol & side
       if (columns.date === undefined || columns.symbol === undefined || columns.side === undefined) {
         throw "Colunas essenciais não encontradas. Cabeçalho encontrado: " + header.join(', ');
       }
-      // Mostra mapeamento das colunas detectadas no console
-      console.log('Mapeamento de colunas:', columns);
       const fills = data.slice(1).filter(row => row[columns.date]).map(row => normalizeRow(row, columns));
       const resumo = analisarOperacoes(fills, capital, exclusoes);
-      renderReport(resumo, capital, header, columns);
+      renderReport(resumo);
     } catch (err) {
       document.getElementById("erro").innerHTML = "Erro ao analisar arquivo: <br>" + err;
       document.getElementById("erro").style.display = 'block';
@@ -181,33 +178,31 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
   }
 });
 
-function renderReport(r, capital, header, columns) {
-  // Descreve qual campo foi localizado em qual coluna para fins didáticos
-  let campoMapa = Object.keys(columns).map(
-    key => `<li><strong>${key}</strong>: "${header[columns[key]]}" (coluna ${String.fromCharCode(65+columns[key])})</li>`
-  ).join('');
+function renderReport(r) {
   document.getElementById('relatorio').innerHTML = `
-  <h2>RELATÓRIO DE PERFORMANCE DE TRADES</h2>
-  <ul>
-    <li><strong>Total de Operações Analisadas:</strong> ${r.total}</li>
-    <li><strong>Operações com Lucro:</strong> ${r.wins}</li>
-    <li><strong>Operações com Prejuízo:</strong> ${r.losses}</li>
-    <li><strong>Operações Neutras:</strong> ${r.neutros}</li>
-    <li><strong>Taxa de Acerto:</strong> ${r.taxaAcerto}%</li>
-  </ul>
-  <ul>
-    <li><strong>Ganhos Totais:</strong> ${r.ganhos} USDT</li>
-    <li><strong>Prejuízos Totais:</strong> ${r.perdas} USDT</li>
-    <li><strong>Total de Taxas Pagas:</strong> ${r.fees} USDT</li>
-    <li><strong>Resultado Líquido Final:</strong> ${r.liquido} USDT</li>
-    <li><strong>Retorno sobre Capital Inicial:</strong> ${r.retorno}%</li>
-  </ul>
-  <ul>
-    <li><strong>Lógica de Contagem:</strong> As operações foram identificadas consolidando preenchimentos sequenciais para formar Operações Lógicas completas (entrada + saída).</li>
-    <li><strong>Exclusões:</strong> ${r.exclusoes.length ? r.exclusoes.join(', ') : 'Nenhuma exclusão aplicada'}.</li>
-    <li><strong>Mapeamento dos campos:</strong>
-      <ul>${campoMapa}</ul>
-    </li>
-  </ul>
+    <h2>RELATÓRIO DE PERFORMANCE DE TRADES</h2>
+    <table class="report-table">
+      <tr><th>Métrica</th><th>Valor</th></tr>
+      <tr><td>Total de Operações Analisadas</td><td><b>${r.total}</b></td></tr>
+      <tr><td>Operações com Lucro</td><td>${r.wins}</td></tr>
+      <tr><td>Operações com Prejuízo</td><td>${r.losses}</td></tr>
+      <tr><td>Operações Neutras</td><td>${r.neutros}</td></tr>
+      <tr><td>Taxa de Acerto</td><td>${r.taxaAcerto}%</td></tr>
+      <tr class="total-row"><td>Ganhos Totais</td><td>+${r.ganhos} USDT</td></tr>
+      <tr class="total-row"><td>Prejuízos Totais</td><td>${r.perdas} USDT</td></tr>
+      <tr><td>Total de Taxas Pagas</td><td>${r.fees} USDT</td></tr>
+      <tr class="result-row"><td>Resultado Líquido Final</td><td><b>${r.liquido} USDT</b></td></tr>
+      <tr class="result-row"><td>Retorno sobre Capital Inicial</td><td><b>${r.retorno}%</b></td></tr>
+    </table>
+    <button id="share-btn">Compartilhar como imagem</button>
   `;
+
+  // Compartilhar como imagem
+  document.getElementById('share-btn').onclick = function() {
+    html2canvas(document.getElementById('relatorio')).then(function(canvas) {
+      let img = canvas.toDataURL('image/png');
+      let w = window.open('');
+      w.document.write('<img src="'+img+'" style="max-width:100%;">');
+    });
+  }
 }
