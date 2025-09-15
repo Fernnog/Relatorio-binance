@@ -57,12 +57,8 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
     // Verifica exclusão por período de data
     if (exclusoes.dateRange && exclusoes.dateRange.start && exclusoes.dateRange.end) {
         const fillDate = fill.date;
-        
-        // --- LINHAS CORRIGIDAS ---
-        const startDate = exclusoes.dateRange.start.dateInstance;
-        const endDate = exclusoes.dateRange.end.dateInstance;
-        // --- FIM DA CORREÇÃO ---
-
+        const startDate = exclusoes.dateRange.start.toDate();
+        const endDate = exclusoes.dateRange.end.toDate();
         // Zera as horas para a comparação ser inclusiva do dia todo
         startDate.setHours(0,0,0,0);
         endDate.setHours(23,59,59,999);
@@ -330,9 +326,11 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
   const capital = Number(document.getElementById("capital-inicial").value);
   const symbolExclusions = (document.getElementById("exclusoes-symbols").value || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
   
+  // --- LINHA CORRIGIDA ---
   const startDate = datePicker.getStartDate();
   const endDate = datePicker.getEndDate();
   const dateRange = (startDate && endDate) ? { start: startDate, end: endDate } : null;
+  // --- FIM DA CORREÇÃO ---
 
   const exclusoes = { symbols: symbolExclusions, dateRange: dateRange };
 
@@ -352,9 +350,7 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
         workbook = XLSX.read(evt.target.result, { type: 'array' });
       }
       const firstSheet = workbook.SheetNames[0];
-      
-      const data = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { header: 1, defval: "", raw: false });
-      
+      const data = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { header: 1, defval: "" });
       const header = data[0];
       const columns = mapColumns(header);
       
