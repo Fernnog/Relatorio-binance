@@ -240,8 +240,8 @@ function updateReportView(r) {
             </td>
             <td><b>${r.fatorLucro}</b></td>
         </tr>
-        <tr class="result-row"><td>Resultado Líquido Final</td><td><b>${r.liquido} USDT</b></td></tr>
-        <tr class="result-row"><td>Retorno sobre Capital Inicial</td><td><b>${r.retorno}%</b></td></tr>
+        <tr class="${r.liquido > 0 ? 'positive-result' : r.liquido < 0 ? 'negative-result' : 'result-row'}"><td>Resultado Líquido Final</td><td><b>${r.liquido} USDT</b></td></tr>
+        <tr class="${r.retorno > 0 ? 'positive-result' : r.retorno < 0 ? 'negative-result' : 'result-row'}"><td>Retorno sobre Capital Inicial</td><td><b>${r.retorno}%</b></td></tr>
       </table>
     </div>
     <div id="capital-chart-container"></div>
@@ -305,35 +305,76 @@ function renderOperacoesDetalhadas(operacoes) {
         return;
     }
 
-    const tableRows = operacoes.map(op => {
-        const resultadoClass = op.resultado > 0 ? 'win-row' : (op.resultado < 0 ? 'loss-row' : '');
-        const dataInicio = new Date(op.entrada[0].date).toLocaleString('pt-BR');
-        return `
-            <tr class="${resultadoClass}">
-                <td>${op.symbol}</td>
-                <td>${dataInicio}</td>
-                <td>${op.resultado.toFixed(2)} USDT</td>
-                <td>${op.fees.toFixed(2)} USDT</td>
-            </tr>
-        `;
-    }).join('');
+    let currentSort = { key: 'date', direction: 'asc' }; // Ordenação inicial
 
+    // Função para renderizar as linhas da tabela com base nos dados atuais
+    const renderRows = (ops) => {
+        return ops.map(op => {
+            const isWin = op.resultado > 0;
+            const isLoss = op.resultado < 0;
+            const resultadoClass = isWin ? 'win-row' : (isLoss ? 'loss-row' : '');
+            const resultadoCellClass = isWin ? 'positive-cell' : (isLoss ? 'negative-cell' : '');
+            const dataInicio = new Date(op.entrada[0].date).toLocaleString('pt-BR');
+            return `
+                <tr class="${resultadoClass}">
+                    <td>${op.symbol}</td>
+                    <td>${dataInicio}</td>
+                    <td class="${resultadoCellClass}">${op.resultado.toFixed(2)} USDT</td>
+                    <td>${op.fees.toFixed(2)} USDT</td>
+                </tr>
+            `;
+        }).join('');
+    };
+
+    // Função de ordenação
+    const sortAndRender = (key) => {
+        const direction = (currentSort.key === key && currentSort.direction === 'asc') ? 'desc' : 'asc';
+        currentSort = { key, direction };
+        
+        operacoes.sort((a, b) => {
+            let valA, valB;
+            if (key === 'date') {
+                valA = new Date(a.entrada[0].date);
+                valB = new Date(b.entrada[0].date);
+            } else {
+                valA = a[key];
+                valB = b[key];
+            }
+            
+            if (valA < valB) return direction === 'asc' ? -1 : 1;
+            if (valA > valB) return direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+        
+        document.querySelector('.details-table tbody').innerHTML = renderRows(operacoes);
+
+        // Atualiza classes dos cabeçalhos
+        document.querySelectorAll('.sortable-header').forEach(th => th.classList.remove('asc', 'desc'));
+        document.querySelector(`th[data-sort="${key}"]`).classList.add(direction);
+    };
+    
     container.innerHTML = `
         <h3 class="detalhes-title">Detalhamento das Operações</h3>
         <table class="report-table details-table">
             <thead>
                 <tr>
-                    <th>Símbolo</th>
-                    <th>Data Início</th>
-                    <th>Resultado</th>
-                    <th>Taxas</th>
+                    <th class="sortable-header" data-sort="symbol">Símbolo</th>
+                    <th class="sortable-header asc" data-sort="date">Data Início</th>
+                    <th class="sortable-header" data-sort="resultado">Resultado</th>
+                    <th class="sortable-header" data-sort="fees">Taxas</th>
                 </tr>
             </thead>
-            <tbody>
-                ${tableRows}
-            </tbody>
+            <tbody></tbody>
         </table>
     `;
+    
+    // Ordenação inicial e renderização
+    sortAndRender('date'); 
+
+    // Adiciona listeners aos cabeçalhos
+    document.querySelectorAll('.sortable-header').forEach(header => {
+        header.addEventListener('click', () => sortAndRender(header.dataset.sort));
+    });
 }
 
 
@@ -394,6 +435,9 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
       const resumo = analisarOperacoes(fills, capital, exclusoes);
       fullReportData = resumo; // Armazena o resultado completo
       renderLayoutAndControls(resumo); // Renderiza o layout e o relatório inicial
+      
+      // Scroll suave para o relatório após a geração
+      document.getElementById('relatorio').scrollIntoView({ behavior: 'smooth', block: 'start' });
       
     } catch (err) {
       erroDiv.innerHTML = "Erro ao analisar arquivo: <br>" + err;
