@@ -57,8 +57,11 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
     // Verifica exclusão por período de data
     if (exclusoes.dateRange && exclusoes.dateRange.start && exclusoes.dateRange.end) {
         const fillDate = fill.date;
-        const startDate = exclusoes.dateRange.start.toDate();
-        const endDate = exclusoes.dateRange.end.toDate();
+        // --- CORREÇÃO (Prioridade 1) ---
+        const startDate = exclusoes.dateRange.start; // Já é um objeto Date
+        const endDate = exclusoes.dateRange.end;     // Já é um objeto Date
+        // --- FIM DA CORREÇÃO ---
+        
         // Zera as horas para a comparação ser inclusiva do dia todo
         startDate.setHours(0,0,0,0);
         endDate.setHours(23,59,59,999);
@@ -145,6 +148,13 @@ function recalcularResumo(operacoes, capitalInicial) {
             capital: capitalAtual
         });
     });
+    
+    // --- CÁLCULO DAS NOVAS MÉTRICAS (Prioridade 2) ---
+    const absPerdas = Math.abs(perdas);
+    const lucroMedio = win > 0 ? (ganhos / win) : 0;
+    const prejuizoMedio = loss > 0 ? (absPerdas / loss) : 0;
+    const payoffRatio = prejuizoMedio > 0 ? (lucroMedio / prejuizoMedio) : 0;
+    const fatorLucro = absPerdas > 0 ? (ganhos / absPerdas) : 0;
 
     return {
         total: operacoes.length, wins: win, losses: loss, neutros: neutro,
@@ -152,6 +162,8 @@ function recalcularResumo(operacoes, capitalInicial) {
         ganhos: ganhos.toFixed(2), perdas: perdas.toFixed(2),
         fees: fees.toFixed(2), liquido: lucro.toFixed(2),
         retorno: operacoes.length && capitalInicial ? ((lucro / capitalInicial) * 100).toFixed(2) : '0.00',
+        payoffRatio: payoffRatio.toFixed(2),
+        fatorLucro: fatorLucro.toFixed(2),
         operacoes, capitalEvolution
     };
 }
@@ -212,6 +224,9 @@ function updateReportView(r) {
         <tr class="total-row"><td>Ganhos Totais</td><td>+${r.ganhos} USDT</td></tr>
         <tr class="loss-total-row"><td>Prejuízos Totais</td><td>${r.perdas} USDT</td></tr>
         <tr><td>Total de Taxas Pagas</td><td>${r.fees} USDT</td></tr>
+        <!-- ADIÇÃO DAS NOVAS MÉTRICAS (Prioridade 2) -->
+        <tr class="metric-row"><td>Payoff Ratio (Ganho Médio / Perda Média)</td><td><b>${r.payoffRatio}</b></td></tr>
+        <tr class="metric-row"><td>Fator de Lucro (Ganhos Totais / Perdas Totais)</td><td><b>${r.fatorLucro}</b></td></tr>
         <tr class="result-row"><td>Resultado Líquido Final</td><td><b>${r.liquido} USDT</b></td></tr>
         <tr class="result-row"><td>Retorno sobre Capital Inicial</td><td><b>${r.retorno}%</b></td></tr>
       </table>
@@ -317,6 +332,10 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
   const loading = document.getElementById("loading");
   const relatorioDiv = document.getElementById("relatorio");
   const erroDiv = document.getElementById("erro");
+  // --- CONTROLE DO BOTÃO (Prioridade 3) ---
+  const submitButton = document.querySelector("#trade-form button[type='submit']");
+  submitButton.disabled = true;
+  submitButton.classList.add('button--loading');
 
   relatorioDiv.innerHTML = '';
   erroDiv.style.display = 'none';
@@ -326,16 +345,17 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
   const capital = Number(document.getElementById("capital-inicial").value);
   const symbolExclusions = (document.getElementById("exclusoes-symbols").value || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
   
-  // --- LINHA CORRIGIDA ---
   const startDate = datePicker.getStartDate();
   const endDate = datePicker.getEndDate();
   const dateRange = (startDate && endDate) ? { start: startDate, end: endDate } : null;
-  // --- FIM DA CORREÇÃO ---
 
   const exclusoes = { symbols: symbolExclusions, dateRange: dateRange };
 
   if (!fileInput.files.length) {
       loading.style.display = 'none';
+      // --- CONTROLE DO BOTÃO (Prioridade 3) ---
+      submitButton.disabled = false;
+      submitButton.classList.remove('button--loading');
       return;
   }
   const file = fileInput.files[0];
@@ -369,6 +389,9 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
       erroDiv.style.display = 'block';
     } finally {
       loading.style.display = 'none';
+      // --- CONTROLE DO BOTÃO (Prioridade 3) ---
+      submitButton.disabled = false;
+      submitButton.classList.remove('button--loading');
     }
   };
 
@@ -376,6 +399,9 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
       erroDiv.innerHTML = "Erro ao ler o arquivo.";
       erroDiv.style.display = 'block';
       loading.style.display = 'none';
+      // --- CONTROLE DO BOTÃO (Prioridade 3) ---
+      submitButton.disabled = false;
+      submitButton.classList.remove('button--loading');
   };
 
   if (file.name.endsWith('.csv')) {
