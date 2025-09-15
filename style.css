@@ -328,3 +328,65 @@ button.button--loading::after {
     visibility: visible;
     opacity: 1;
 }
+
+/* --- MELHORIAS DE INTERATIVIDADE E VISUALIZAÇÃO (PRIORIDADE 1) --- */
+
+/* Estilos para indicadores visuais de performance */
+.report-table .positive-result td,
+.details-table .win-row .positive-cell {
+  background-color: #e4ffe8 !important;
+  color: #19a557 !important;
+  font-weight: bold;
+}
+
+.report-table .negative-result td,
+.details-table .loss-row .negative-cell {
+  background-color: #fff1f0 !important;
+  color: #c0392b !important;
+  font-weight: bold;
+}
+
+.positive-result td:first-child::after,
+.positive-cell::after {
+  content: ' ▲';
+  display: inline-block;
+  margin-left: 8px;
+}
+
+.negative-result td:first-child::after,
+.negative-cell::after {
+  content: ' ▼';
+  display: inline-block;
+  margin-left: 8px;
+}
+
+/* Estilos para tabela de detalhes ordenável */
+.details-table th.sortable-header {
+  cursor: pointer;
+  position: relative;
+  user-select: none; /* Impede a seleção de texto ao clicar rápido */
+}
+
+.details-table th.sortable-header:hover {
+  background-color: #1a53c0; /* Um pouco mais claro no hover */
+}
+
+.details-table th.sortable-header::after {
+  content: ' ';
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  margin-top: -8px;
+  border: 5px solid transparent;
+  opacity: 0.3;
+}
+
+.details-table th.sortable-header.asc::after {
+  border-bottom-color: #fff;
+  opacity: 1;
+}
+
+.details-table th.sortable-header.desc::after {
+  border-top-color: #fff;
+  opacity: 1;
+}
