@@ -57,14 +57,21 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
     // Verifica exclusão por período de data
     if (exclusoes.dateRange && exclusoes.dateRange.start && exclusoes.dateRange.end) {
         const fillDate = fill.date;
-        const startDate = exclusoes.dateRange.start; // Já é um objeto Date
-        const endDate = exclusoes.dateRange.end;     // Já é um objeto Date
+
+        // --- INÍCIO DA CORREÇÃO ---
+        // O bug estava aqui. As datas originais de 'exclusoes.dateRange' estavam sendo
+        // modificadas (mutadas) a cada iteração do filtro, causando um comportamento incorreto.
+        // A solução é criar NOVAS instâncias de Date para a comparação,
+        // garantindo que os critérios de filtro permaneçam constantes.
+        const startDate = new Date(exclusoes.dateRange.start);
+        const endDate = new Date(exclusoes.dateRange.end);
+        // --- FIM DA CORREÇÃO ---
         
         // Zera as horas para a comparação ser inclusiva do dia todo
         startDate.setHours(0,0,0,0);
         endDate.setHours(23,59,59,999);
         if (fillDate >= startDate && fillDate <= endDate) {
-            return false;
+            return false; // Exclui a operação se estiver dentro do intervalo
         }
     }
     return true; // Mantém o fill se não houver exclusão
