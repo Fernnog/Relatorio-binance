@@ -11,15 +11,18 @@ O principal diferencial da aplicação é sua capacidade de realizar uma anális
 -   **Análise Inteligente de Operações:** O algoritmo agrupa ordens parciais consecutivas do mesmo lado (compra ou venda) em "pernas" e, em seguida, combina uma perna de entrada com uma perna de saída de quantidade correspondente para formar uma operação completa.
 -   **Cálculo Preciso de Resultados:** Se a planilha contiver uma coluna de "Lucro Realizado" (Realized Profit), a ferramenta a utilizará para máxima precisão no cálculo do resultado. Caso contrário, calcula o resultado manualmente (`Valor de Venda - Valor de Compra - Taxas`).
 -   **Relatório de Performance Completo:** Exibe métricas chave como Total de Operações, Taxa de Acerto, Ganhos/Prejuízos Totais, Taxas e o Resultado Líquido Final.
+-   **Métricas Avançadas de Performance:** Além das métricas básicas, o relatório agora inclui **Fator de Lucro** e **Payoff Ratio**, com tooltips explicativos para ajudar na interpretação dos resultados e aprofundar a análise da estratégia.
+-   **Gráfico de Evolução de Capital:** Visualiza o crescimento (ou decrescimento) do capital inicial ao longo das operações analisadas.
 -   **Detalhamento de Operações:** Apresenta uma tabela com cada operação individual identificada, mostrando o símbolo, data de início, resultado e taxas.
--   **Compartilhamento como Imagem:** Permite gerar uma imagem PNG limpa de todo o relatório para fácil compartilhamento.
+-   **Filtros Interativos:** Permite filtrar o relatório gerado por ativo específico e excluir símbolos ou períodos de datas da análise inicial.
+-   **Compartilhamento como Imagem:** Permite gerar uma imagem PNG limpa do resumo do relatório para fácil compartilhamento.
 
 ## Como Usar
 
 1.  Abra o arquivo `index.html` em qualquer navegador moderno.
 2.  Clique em "Escolher arquivo" e selecione sua planilha de histórico de trades.
 3.  Informe o seu "Capital Inicial" no campo correspondente.
-4.  (Opcional) Adicione símbolos ou datas a serem ignorados na análise, separados por vírgula.
+4.  (Opcional) Adicione símbolos (separados por vírgula) ou selecione um período de datas a serem ignorados na análise.
 5.  Clique no botão "Gerar Relatório".
 
 ## Formato da Planilha Esperado
@@ -42,4 +45,6 @@ Para que a análise funcione corretamente, sua planilha deve conter, no mínimo,
 -   **Frontend:** HTML5, CSS3, JavaScript (ES6+)
 -   **Bibliotecas Externas:**
     -   **SheetJS (xlsx.js):** Para a leitura e parse de arquivos de planilha diretamente no navegador.
+    -   **Chart.js:** Para a renderização do gráfico de evolução de capital.
+    -   **Litepicker:** Para o seletor de datas (calendário) com seleção de período.
     -   **html2canvas.js:** Para a funcionalidade de captura de tela e geração de imagem do relatório.
