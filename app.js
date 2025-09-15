@@ -57,10 +57,8 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
     // Verifica exclusão por período de data
     if (exclusoes.dateRange && exclusoes.dateRange.start && exclusoes.dateRange.end) {
         const fillDate = fill.date;
-        // --- CORREÇÃO (Prioridade 1) ---
         const startDate = exclusoes.dateRange.start; // Já é um objeto Date
         const endDate = exclusoes.dateRange.end;     // Já é um objeto Date
-        // --- FIM DA CORREÇÃO ---
         
         // Zera as horas para a comparação ser inclusiva do dia todo
         startDate.setHours(0,0,0,0);
@@ -149,7 +147,6 @@ function recalcularResumo(operacoes, capitalInicial) {
         });
     });
     
-    // --- CÁLCULO DAS NOVAS MÉTRICAS (Prioridade 2) ---
     const absPerdas = Math.abs(perdas);
     const lucroMedio = win > 0 ? (ganhos / win) : 0;
     const prejuizoMedio = loss > 0 ? (absPerdas / loss) : 0;
@@ -224,9 +221,25 @@ function updateReportView(r) {
         <tr class="total-row"><td>Ganhos Totais</td><td>+${r.ganhos} USDT</td></tr>
         <tr class="loss-total-row"><td>Prejuízos Totais</td><td>${r.perdas} USDT</td></tr>
         <tr><td>Total de Taxas Pagas</td><td>${r.fees} USDT</td></tr>
-        <!-- ADIÇÃO DAS NOVAS MÉTRICAS (Prioridade 2) -->
-        <tr class="metric-row"><td>Payoff Ratio (Ganho Médio / Perda Média)</td><td><b>${r.payoffRatio}</b></td></tr>
-        <tr class="metric-row"><td>Fator de Lucro (Ganhos Totais / Perdas Totais)</td><td><b>${r.fatorLucro}</b></td></tr>
+        <!-- MODIFICAÇÃO PARA ADICIONAR TOOLTIPS -->
+        <tr class="metric-row">
+            <td>
+                Payoff Ratio (Ganho Médio / Perda Média)
+                <span class="info-icon">i
+                    <span class="tooltip">Mede o tamanho do seu ganho médio em relação à sua perda média. Um valor acima de 1.0 significa que seus trades vencedores são, em média, maiores que seus perdedores.</span>
+                </span>
+            </td>
+            <td><b>${r.payoffRatio}</b></td>
+        </tr>
+        <tr class="metric-row">
+            <td>
+                Fator de Lucro (Ganhos Totais / Perdas Totais)
+                <span class="info-icon">i
+                    <span class="tooltip">Mede o lucro bruto total dividido pelo prejuízo bruto total. Um valor acima de 2.0 é considerado excelente, indicando uma estratégia robusta.</span>
+                </span>
+            </td>
+            <td><b>${r.fatorLucro}</b></td>
+        </tr>
         <tr class="result-row"><td>Resultado Líquido Final</td><td><b>${r.liquido} USDT</b></td></tr>
         <tr class="result-row"><td>Retorno sobre Capital Inicial</td><td><b>${r.retorno}%</b></td></tr>
       </table>
@@ -332,7 +345,6 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
   const loading = document.getElementById("loading");
   const relatorioDiv = document.getElementById("relatorio");
   const erroDiv = document.getElementById("erro");
-  // --- CONTROLE DO BOTÃO (Prioridade 3) ---
   const submitButton = document.querySelector("#trade-form button[type='submit']");
   submitButton.disabled = true;
   submitButton.classList.add('button--loading');
@@ -353,7 +365,6 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
 
   if (!fileInput.files.length) {
       loading.style.display = 'none';
-      // --- CONTROLE DO BOTÃO (Prioridade 3) ---
       submitButton.disabled = false;
       submitButton.classList.remove('button--loading');
       return;
@@ -389,7 +400,6 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
       erroDiv.style.display = 'block';
     } finally {
       loading.style.display = 'none';
-      // --- CONTROLE DO BOTÃO (Prioridade 3) ---
       submitButton.disabled = false;
       submitButton.classList.remove('button--loading');
     }
@@ -399,7 +409,6 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
       erroDiv.innerHTML = "Erro ao ler o arquivo.";
       erroDiv.style.display = 'block';
       loading.style.display = 'none';
-      // --- CONTROLE DO BOTÃO (Prioridade 3) ---
       submitButton.disabled = false;
       submitButton.classList.remove('button--loading');
   };
