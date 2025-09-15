@@ -216,4 +216,59 @@ button:hover {
 .report-controls {
   margin-bottom: 1.5em;
   padding: 1em;
-  bac
+  background: #f0f3f8;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 1em;
+}
+
+.report-controls label {
+  font-weight: normal;
+  margin-bottom: 0;
+}
+
+.report-controls select {
+  padding: .5em;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+
+/* --- ESTILOS PARA PRIORIDADES 2 e 3 --- */
+
+/* Estilo para as novas linhas de métricas (Prioridade 2) */
+.report-table .metric-row td {
+  background-color: #e6f7ff;
+  color: #0d47a1;
+  font-weight: bold;
+}
+
+/* Estilos para o estado de carregamento do botão (Prioridade 3) */
+button.button--loading {
+  position: relative;
+  cursor: wait;
+  color: transparent !important; /* Esconde o texto original */
+  opacity: 0.7;
+}
+
+button.button--loading::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  top: 50%;
+  left: 50%;
+  margin-top: -10px;
+  margin-left: -10px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
