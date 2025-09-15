@@ -48,6 +48,8 @@ function legSum(arr, prop) {
 // --- 2. LÓGICA DE NEGÓCIO (O ANALISADOR) ---
 
 function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
+  const originalCount = fills.length;
+
   // Filtro de exclusões e ordenação por data
   let filtered = fills.filter(fill => {
     // Verifica exclusão por símbolo
@@ -57,25 +59,37 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
     // Verifica exclusão por período de data
     if (exclusoes.dateRange && exclusoes.dateRange.start && exclusoes.dateRange.end) {
         const fillDate = fill.date;
+        
+        // Verifica se a data da planilha é válida
+        if (isNaN(fillDate.getTime())) {
+            console.warn(`[DEBUG] Data inválida encontrada na planilha, a linha será ignorada:`, fill.raw);
+            return false;
+        }
 
-        // --- INÍCIO DA CORREÇÃO ---
-        // O bug estava aqui. As datas originais de 'exclusoes.dateRange' estavam sendo
-        // modificadas (mutadas) a cada iteração do filtro, causando um comportamento incorreto.
-        // A solução é criar NOVAS instâncias de Date para a comparação,
-        // garantindo que os critérios de filtro permaneçam constantes.
         const startDate = new Date(exclusoes.dateRange.start);
         const endDate = new Date(exclusoes.dateRange.end);
-        // --- FIM DA CORREÇÃO ---
         
-        // Zera as horas para a comparação ser inclusiva do dia todo
         startDate.setHours(0,0,0,0);
         endDate.setHours(23,59,59,999);
-        if (fillDate >= startDate && fillDate <= endDate) {
+
+        const isWithinRange = fillDate >= startDate && fillDate <= endDate;
+        
+        // [DEBUG] MARCADOR PRINCIPAL: Loga cada verificação de data
+        console.log(
+            `[DEBUG] Checando: ${fill.symbol} em ${fillDate.toLocaleString('pt-BR')} | ` +
+            `Regra de Exclusão: ${startDate.toLocaleDateString('pt-BR')} até ${endDate.toLocaleDateString('pt-BR')} | ` +
+            `Resultado: ${isWithinRange ? 'EXCLUIR' : 'MANTER'}`
+        );
+
+        if (isWithinRange) {
             return false; // Exclui a operação se estiver dentro do intervalo
         }
     }
     return true; // Mantém o fill se não houver exclusão
   }).sort((a, b) => a.date - b.date);
+
+  // [DEBUG] MARCADOR DE SUMÁRIO: Informa quantas operações foram filtradas no total.
+  console.log(`[DEBUG] Filtro concluído. ${originalCount - filtered.length} de ${originalCount} operações foram removidas pelas regras de exclusão.`);
 
   const operacoes = [];
   const tradesBySymbol = {};
@@ -409,7 +423,9 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
   const endDate = datePicker.getEndDate();
   const dateRange = (startDate && endDate) ? { start: startDate, end: endDate } : null;
 
+  // [DEBUG] MARCADOR DE ENTRADA: Mostra quais exclusões estão sendo enviadas para a análise.
   const exclusoes = { symbols: symbolExclusions, dateRange: dateRange };
+  console.log("[DEBUG] Iniciando análise com as seguintes exclusões:", JSON.parse(JSON.stringify(exclusoes)));
 
   if (!fileInput.files.length) {
       loading.style.display = 'none';
