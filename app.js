@@ -3,7 +3,7 @@ let fullReportData = null;       // Para armazenar o resultado completo da anál
 let datePicker = null;           // Para a instância do calendário
 
 // --- 1. FUNÇÕES DE UTILIDADE ---
-// Responsáveis por tarefas pequenas e reutilizáveis de formatação e cálculo.
+// Responsáveis por tarefas pequenas e reutilizáveis de formatação.
 
 function mapColumns(headerRow) {
   const col = {};
@@ -40,151 +40,19 @@ function normalizeRow(row, columns) {
   };
 }
 
-function legSum(arr, prop) {
-  return arr.reduce((sum, fill) => sum + Number(fill[prop] || 0), 0);
-}
 
+// --- 2. RENDERIZAÇÃO E MANIPULAÇÃO DO DOM ---
 
-// --- 2. LÓGICA DE NEGÓCIO (O ANALISADOR) ---
-
-function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
-  // Filtro de exclusões e ordenação por data
-  let filtered = fills.filter(fill => {
-    // Verifica exclusão por símbolo
-    const symbolExcluded = (exclusoes.symbols || []).some(exc => fill.symbol.toLowerCase().includes(exc));
-    if (symbolExcluded) return false;
-
-    // Verifica exclusão por período de data
-    if (exclusoes.dateRange && exclusoes.dateRange.start && exclusoes.dateRange.end) {
-        const fillDate = fill.date;
-        
-        if (isNaN(fillDate.getTime())) {
-            return false;
-        }
-
-        const startDate = new Date(exclusoes.dateRange.start);
-        const endDate = new Date(exclusoes.dateRange.end);
-        
-        startDate.setHours(0,0,0,0);
-        endDate.setHours(23,59,59,999);
-
-        if (fillDate >= startDate && fillDate <= endDate) {
-            return false; // Exclui a operação se estiver dentro do intervalo
-        }
-    }
-    return true; // Mantém o fill se não houver exclusão
-  }).sort((a, b) => a.date - b.date);
-
-  const operacoes = [];
-  const tradesBySymbol = {};
-  filtered.forEach(f => {
-    if (!tradesBySymbol[f.symbol]) tradesBySymbol[f.symbol] = [];
-    tradesBySymbol[f.symbol].push(f);
-  });
-
-  for (const symbol in tradesBySymbol) {
-    const symbolFills = tradesBySymbol[symbol];
-    if (symbolFills.length < 2) continue;
-
-    const legs = [];
-    let currentLeg = [];
-    symbolFills.forEach(fill => {
-      if (currentLeg.length === 0 || fill.side === currentLeg[0].side) {
-        currentLeg.push(fill);
-      } else {
-        legs.push(currentLeg);
-        currentLeg = [fill];
-      }
-    });
-    if (currentLeg.length > 0) legs.push(currentLeg);
-
-    for (let i = 0; i < legs.length - 1; i++) {
-      const entryLeg = legs[i];
-      const exitLeg = legs[i + 1];
-      const qtyIn = legSum(entryLeg, 'qty');
-      const qtyOut = legSum(exitLeg, 'qty');
-
-      if (Math.abs(qtyIn - qtyOut) < 1e-8) {
-        const allFills = [...entryLeg, ...exitLeg];
-        const [buys, sells] = entryLeg[0].side === 'BUY' ? [entryLeg, exitLeg] : [exitLeg, entryLeg];
-        
-        const totalRProfit = legSum(allFills, 'rprofit');
-        const hasRProfitData = allFills.some(f => f.rprofit !== 0);
-
-        const resultadoCalculado = hasRProfitData
-          ? totalRProfit
-          : legSum(sells, "amount") - legSum(buys, "amount") - legSum(allFills, "fee");
-
-        operacoes.push({
-          symbol: symbol,
-          entrada: buys,
-          saida: sells,
-          totalQty: qtyIn,
-          fees: legSum(allFills, "fee"),
-          resultado: resultadoCalculado,
-        });
-        i++;
-      }
-    }
-  }
-
-  operacoes.sort((a, b) => new Date(a.entrada[0].date) - new Date(b.entrada[0].date));
-
-  return recalcularResumo(operacoes, capitalInicial);
-}
-
-// Recalcula as métricas com base num conjunto de operações (usado para o filtro)
-function recalcularResumo(operacoes, capitalInicial) {
-    let ganhos = 0, perdas = 0, fees = 0, lucro = 0, win = 0, loss = 0, neutro = 0;
-    const capitalEvolution = [{ date: 'Início', capital: capitalInicial }];
-    let capitalAtual = capitalInicial;
-
-    operacoes.forEach(op => {
-        fees += op.fees;
-        if (op.resultado > 0) { ganhos += op.resultado; win++; }
-        else if (op.resultado < 0) { perdas += op.resultado; loss++; }
-        else neutro++;
-        lucro += op.resultado;
-        capitalAtual += op.resultado;
-        capitalEvolution.push({
-            date: new Date(op.entrada[0].date).toLocaleDateString('pt-BR'),
-            capital: capitalAtual
-        });
-    });
-    
-    const absPerdas = Math.abs(perdas);
-    const lucroMedio = win > 0 ? (ganhos / win) : 0;
-    const prejuizoMedio = loss > 0 ? (absPerdas / loss) : 0;
-    const payoffRatio = prejuizoMedio > 0 ? (lucroMedio / prejuizoMedio) : 0;
-    const fatorLucro = absPerdas > 0 ? (ganhos / absPerdas) : 0;
-
-    return {
-        total: operacoes.length, wins: win, losses: loss, neutros: neutro,
-        taxaAcerto: operacoes.length ? ((win / operacoes.length) * 100).toFixed(2) : '0.00',
-        ganhos: ganhos.toFixed(2), perdas: perdas.toFixed(2),
-        fees: fees.toFixed(2), liquido: lucro.toFixed(2),
-        retorno: operacoes.length && capitalInicial ? ((lucro / capitalInicial) * 100).toFixed(2) : '0.00',
-        payoffRatio: payoffRatio.toFixed(2),
-        fatorLucro: fatorLucro.toFixed(2),
-        operacoes, capitalEvolution
-    };
-}
-
-
-// --- 3. RENDERIZAÇÃO E MANIPULAÇÃO DO DOM ---
-
-// Cria o layout do relatório e os controles de filtro
 function renderLayoutAndControls(reportData) {
     const reportElement = document.getElementById('relatorio');
     reportElement.innerHTML = `
         <div class="report-controls" id="report-controls"></div>
         <div id="report-content"></div>
     `;
-    renderReportControls(fullReportData.operacoes); // Usa os dados completos para popular os filtros
-    updateReportView(reportData); // Renderiza a visão inicial
+    renderReportControls(fullReportData.operacoes);
+    updateReportView(reportData);
 }
 
-// Popula o container de filtros e adiciona o listener
 function renderReportControls(operacoes) {
     const controlsContainer = document.getElementById('report-controls');
     const uniqueSymbols = ['-- TODOS OS ATIVOS --', ...new Set(operacoes.map(op => op.symbol))];
@@ -210,7 +78,6 @@ function renderReportControls(operacoes) {
     });
 }
 
-// Atualiza a visualização do relatório (tabelas, gráfico)
 function updateReportView(r) {
   const contentElement = document.getElementById('report-content');
   contentElement.innerHTML = `
@@ -226,7 +93,8 @@ function updateReportView(r) {
         <tr class="total-row"><td>Ganhos Totais</td><td>+${r.ganhos} USDT</td></tr>
         <tr class="loss-total-row"><td>Prejuízos Totais</td><td>${r.perdas} USDT</td></tr>
         <tr><td>Total de Taxas Pagas</td><td>${r.fees} USDT</td></tr>
-        <!-- MODIFICAÇÃO PARA ADICIONAR TOOLTIPS -->
+        
+        <!-- IMPLEMENTAÇÃO PRIORIDADE 1 e 3 -->
         <tr class="metric-row">
             <td>
                 Payoff Ratio (Ganho Médio / Perda Média)
@@ -245,6 +113,17 @@ function updateReportView(r) {
             </td>
             <td><b>${r.fatorLucro}</b></td>
         </tr>
+        <tr class="metric-row">
+            <td>
+                Drawdown Máximo
+                <span class="info-icon">i
+                    <span class="tooltip">A maior queda percentual do capital a partir de um pico. Mede o risco e a volatilidade da estratégia durante o período analisado.</span>
+                </span>
+            </td>
+            <td><b>${r.maxDrawdown}%</b></td>
+        </tr>
+
+        <!-- IMPLEMENTAÇÃO PRIORIDADE 2 (Classes aplicadas dinamicamente) -->
         <tr class="${r.liquido > 0 ? 'positive-result' : r.liquido < 0 ? 'negative-result' : 'result-row'}"><td>Resultado Líquido Final</td><td><b>${r.liquido} USDT</b></td></tr>
         <tr class="${r.retorno > 0 ? 'positive-result' : r.retorno < 0 ? 'negative-result' : 'result-row'}"><td>Retorno sobre Capital Inicial</td><td><b>${r.retorno}%</b></td></tr>
       </table>
@@ -310,13 +189,13 @@ function renderOperacoesDetalhadas(operacoes) {
         return;
     }
 
-    let currentSort = { key: 'date', direction: 'asc' }; // Ordenação inicial
+    let currentSort = { key: 'date', direction: 'asc' };
 
-    // Função para renderizar as linhas da tabela com base nos dados atuais
     const renderRows = (ops) => {
         return ops.map(op => {
             const isWin = op.resultado > 0;
             const isLoss = op.resultado < 0;
+            // IMPLEMENTAÇÃO PRIORIDADE 2
             const resultadoClass = isWin ? 'win-row' : (isLoss ? 'loss-row' : '');
             const resultadoCellClass = isWin ? 'positive-cell' : (isLoss ? 'negative-cell' : '');
             const dataInicio = new Date(op.entrada[0].date).toLocaleString('pt-BR');
@@ -331,7 +210,6 @@ function renderOperacoesDetalhadas(operacoes) {
         }).join('');
     };
 
-    // Função de ordenação
     const sortAndRender = (key) => {
         const direction = (currentSort.key === key && currentSort.direction === 'asc') ? 'desc' : 'asc';
         currentSort = { key, direction };
@@ -352,8 +230,6 @@ function renderOperacoesDetalhadas(operacoes) {
         });
         
         document.querySelector('.details-table tbody').innerHTML = renderRows(operacoes);
-
-        // Atualiza classes dos cabeçalhos
         document.querySelectorAll('.sortable-header').forEach(th => th.classList.remove('asc', 'desc'));
         document.querySelector(`th[data-sort="${key}"]`).classList.add(direction);
     };
@@ -373,17 +249,15 @@ function renderOperacoesDetalhadas(operacoes) {
         </table>
     `;
     
-    // Ordenação inicial e renderização
     sortAndRender('date'); 
 
-    // Adiciona listeners aos cabeçalhos
     document.querySelectorAll('.sortable-header').forEach(header => {
         header.addEventListener('click', () => sortAndRender(header.dataset.sort));
     });
 }
 
 
-// --- 4. PONTO DE ENTRADA E CONTROLE DE EVENTOS ---
+// --- 3. PONTO DE ENTRADA E CONTROLE DE EVENTOS ---
 
 document.getElementById("trade-form").addEventListener("submit", function(e) {
   e.preventDefault();
@@ -403,14 +277,11 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
   const capital = Number(document.getElementById("capital-inicial").value);
   const symbolExclusions = (document.getElementById("exclusoes-symbols").value || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
   
-  // --- INÍCIO DA CORREÇÃO ---
-  // O Litepicker retorna um objeto próprio. Precisamos extrair a instância de Date nativa do JS.
   const startDateObj = datePicker.getStartDate();
   const endDateObj = datePicker.getEndDate();
   
   const startDate = startDateObj ? startDateObj.dateInstance : null;
   const endDate = endDateObj ? endDateObj.dateInstance : null;
-  // --- FIM DA CORREÇÃO ---
   
   const dateRange = (startDate && endDate) ? { start: startDate, end: endDate } : null;
 
@@ -445,10 +316,9 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
       const fills = data.slice(1).filter(row => row.length > 0 && row[columns.date]).map(row => normalizeRow(row, columns));
       
       const resumo = analisarOperacoes(fills, capital, exclusoes);
-      fullReportData = resumo; // Armazena o resultado completo
-      renderLayoutAndControls(resumo); // Renderiza o layout e o relatório inicial
+      fullReportData = resumo;
+      renderLayoutAndControls(resumo);
       
-      // Scroll suave para o relatório após a geração
       document.getElementById('relatorio').scrollIntoView({ behavior: 'smooth', block: 'start' });
       
     } catch (err) {
@@ -476,17 +346,13 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
   }
 });
 
-// Inicializa o calendário quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', function() {
     datePicker = new Litepicker({
         element: document.getElementById('exclusoes-dates'),
         singleMode: false,
         allowRepick: true,
         lang: 'pt-BR',
-        tooltipText: {
-            one: 'dia',
-            other: 'dias'
-        },
+        tooltipText: { one: 'dia', other: 'dias' },
         buttonText: {
             previousMonth: `<svg width="11" height="16" xmlns="http://www.w3.org/2000/svg"><path d="M11 0v16L0 8z" fill="#1746a0"/></svg>`,
             nextMonth: `<svg width="11" height="16" xmlns="http://www.w3.org/2000/svg"><path d="M0 0v16l11-8z" fill="#1746a0"/></svg>`,
@@ -496,8 +362,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-
-// --- 5. FUNCIONALIDADE DE REINÍCIO ---
 document.getElementById("reset-btn").addEventListener("click", function() {
     if (confirm("Tem certeza que deseja limpar o relatório e começar uma nova análise?")) {
         document.getElementById("trade-form").reset();
