@@ -70,13 +70,17 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
     });
     if (currentLeg.length > 0) legs.push(currentLeg);
 
-    for (let i = 0; i < legs.length - 1; i++) {
+    // --- INÍCIO DA CORREÇÃO ---
+    // Substituição do laço 'for' por 'while' para garantir o pareamento correto.
+    let i = 0;
+    while (i < legs.length - 1) {
       const entryLeg = legs[i];
       const exitLeg = legs[i + 1];
       const qtyIn = legSum(entryLeg, 'qty');
       const qtyOut = legSum(exitLeg, 'qty');
 
-      if (Math.abs(qtyIn - qtyOut) < 1e-8) {
+      // Verifica se a perna atual e a próxima formam um par com lados opostos e quantidade correspondente
+      if (entryLeg[0].side !== exitLeg[0].side && Math.abs(qtyIn - qtyOut) < 1e-8) {
         const allFills = [...entryLeg, ...exitLeg];
         const [buys, sells] = entryLeg[0].side === 'BUY' ? [entryLeg, exitLeg] : [exitLeg, entryLeg];
         
@@ -95,9 +99,15 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
           fees: legSum(allFills, "fee"),
           resultado: resultadoCalculado,
         });
+        
+        // Se formou um par, pulamos as duas pernas utilizadas para analisar o próximo par possível
+        i += 2;
+      } else {
+        // Se não formou um par, avançamos apenas uma perna para tentar pareá-la com a seguinte
         i++;
       }
     }
+    // --- FIM DA CORREÇÃO ---
   }
 
   operacoes.sort((a, b) => new Date(a.entrada[0].date) - new Date(b.entrada[0].date));
