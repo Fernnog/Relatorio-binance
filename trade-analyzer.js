@@ -56,7 +56,10 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
     const symbolFills = tradesBySymbol[symbol];
     if (symbolFills.length < 2) continue;
 
+    // --- INÍCIO DA LÓGICA CORRIGIDA ---
+
     // ETAPA 1: Agrupar fills consecutivos do mesmo lado em "pernas" (legs).
+    // Ex: [BUY, BUY, BUY, SELL, SELL] se torna [Leg(BUYs), Leg(SELLs)]
     const allLegs = [];
     let currentLeg = [];
     symbolFills.forEach(fill => {
@@ -69,8 +72,8 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
     });
     if (currentLeg.length > 0) allLegs.push(currentLeg);
 
-    // --- INÍCIO DA NOVA LÓGICA DE PAREAMENTO ---
-    // ETAPA 2: Iterar sobre as pernas para encontrar pares que formam uma operação.
+    // ETAPA 2: Iterar sobre as pernas para encontrar pares que formam uma operação completa.
+    // Esta lógica consome a lista de pernas, garantindo o pareamento sequencial correto.
     let legs = [...allLegs]; // Cria uma cópia mutável para consumir
     while (legs.length >= 2) {
         const entryLeg = legs[0];
@@ -104,11 +107,11 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
             legs.splice(0, 2);
         } else {
             // Se não formou um par, a primeira perna está "aberta" ou órfã.
-            // Removemos apenas ela e tentamos parear a próxima.
+            // Removemos apenas ela e tentamos parear a próxima com sua sucessora.
             legs.splice(0, 1);
         }
     }
-    // --- FIM DA NOVA LÓGICA DE PAREAMENTO ---
+    // --- FIM DA LÓGICA CORRIGIDA ---
   }
 
   operacoes.sort((a, b) => new Date(a.entrada[0].date) - new Date(b.entrada[0].date));
@@ -140,6 +143,7 @@ function recalcularResumo(operacoes, capitalInicial) {
         });
     });
     
+    // --- Cálculo do Drawdown Máximo (PRIORIDADE 3) ---
     let maxDrawdown = 0;
     let peakCapital = capitalInicial;
     capitalEvolution.forEach(point => {
