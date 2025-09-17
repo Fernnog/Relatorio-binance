@@ -65,7 +65,7 @@ button:hover {
   font-size: 1.09em;
 }
 
-.relatorio h2 {
+.relatorio h2, .relatorio h3 {
   color: #1746a0;
   font-size: 1.3em;
   margin-bottom: 1em;
@@ -134,17 +134,16 @@ button:hover {
     font-size: 0.97em;
   }
   
-  /* --- MELHORIAS DE RESPONSIVIDADE ADICIONADAS --- */
   input[type="file"],
   input[type="number"],
   input[type="text"] {
-    width: 100%; /* Ocupa a largura total para facilitar */
-    box-sizing: border-box; /* Garante que padding não quebre o layout */
+    width: 100%; 
+    box-sizing: border-box; 
   }
 
   button {
     width: 100%;
-    margin-bottom: 0.5em; /* Espaçamento entre botões empilhados */
+    margin-bottom: 0.5em; 
   }
 
   #reset-btn {
@@ -156,8 +155,6 @@ button:hover {
     align-items: stretch;
   }
 }
-
-/* --- MELHORIAS ADICIONADAS --- */
 
 /* Estilo para o indicador de loading */
 .loading-indicator {
@@ -193,7 +190,6 @@ button:hover {
   color: #c0392b;
 }
 
-/* --- NOVOS ESTILOS --- */
 .report-table .loss-total-row td {
   background: #fff1f0;
   color: #c0392b;
@@ -234,10 +230,7 @@ button:hover {
   border: 1px solid #ccc;
 }
 
-
-/* --- ESTILOS PARA PRIORIDADES 1, 2 e 3 --- */
-
-/* Estilo para as novas linhas de métricas (Prioridade 1 e 3) */
+/* Estilo para as novas linhas de métricas */
 .report-table .metric-row td {
   background-color: #e6f7ff;
   color: #0d47a1;
@@ -248,7 +241,7 @@ button:hover {
 button.button--loading {
   position: relative;
   cursor: wait;
-  color: transparent !important; /* Esconde o texto original */
+  color: transparent !important; 
   opacity: 0.7;
 }
 
@@ -273,7 +266,7 @@ button.button--loading::after {
   }
 }
 
-/* Estilo para o ícone de informação (Prioridade 1) */
+/* Estilo para o ícone de informação */
 .info-icon {
   display: inline-block;
   width: 16px;
@@ -288,13 +281,13 @@ button.button--loading::after {
   cursor: help;
   font-style: italic;
   font-family: serif;
-  position: relative; /* Contexto para o tooltip */
+  position: relative; 
 }
 
-/* Estilo para a caixa de tooltip (Prioridade 1) */
+/* Estilo para a caixa de tooltip */
 .tooltip {
   position: absolute;
-  bottom: 125%; /* Posiciona acima do ícone */
+  bottom: 125%; 
   left: 50%;
   transform: translateX(-50%);
   background-color: #333;
@@ -328,7 +321,7 @@ button.button--loading::after {
     opacity: 1;
 }
 
-/* Estilos para indicadores visuais de performance (Prioridade 2) */
+/* Estilos para indicadores visuais de performance */
 .report-table .positive-result td,
 .details-table .win-row .positive-cell {
   background-color: #e4ffe8 !important;
@@ -387,3 +380,44 @@ button.button--loading::after {
   border-top-color: #fff;
   opacity: 1;
 }
+
+/* --- INÍCIO DAS ALTERAÇÕES: Estilos para a tela de validação --- */
+
+#validation-table-container {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 1.5em;
+}
+
+.validation-table {
+  font-size: 0.9em;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.validation-table th, .validation-table td {
+  padding: 0.5em;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+.validation-table th {
+  background-color: #f2f2f2;
+  position: sticky;
+  top: 0;
+}
+
+/* Cores para os grupos */
+.group-color-1 { background-color: #e0f7fa; } /* Cyan */
+.group-color-2 { background-color: #e8f5e9; } /* Green */
+.group-color-3 { background-color: #fff9c4; } /* Yellow */
+.group-color-4 { background-color: #fce4ec; } /* Pink */
+.group-color-5 { background-color: #f3e5f5; } /* Purple */
+.group-color-6 { background-color: #ede7f6; } /* Deep Purple */
+
+.unmatched-row {
+  background-color: #fafafa;
+  color: #757575;
+}
+
+/* --- FIM DAS ALTERAÇÕES --- */
