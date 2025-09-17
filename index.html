@@ -39,10 +39,19 @@
       <button type="button" id="reset-btn" style="display: none;">Reiniciar Análise</button>
     </form>
 
-    <!-- MELHORIA ADICIONADA: Indicador de Carregamento -->
+    <!-- Indicador de Carregamento -->
     <div id="loading" class="loading-indicator" style="display: none;">
       Analisando operações, por favor aguarde...
     </div>
+
+    <!-- INÍCIO DA ALTERAÇÃO: Nova etapa de validação -->
+    <div id="validacao-operacoes" class="relatorio" style="display: none;">
+      <h3>Validação de Agrupamentos</h3>
+      <p>Verifique os agrupamentos de operações identificados abaixo. As linhas com a mesma cor pertencem à mesma operação. As linhas sem cor não foram agrupadas.</p>
+      <div id="validation-table-container"></div>
+      <button id="confirm-groups-btn">Confirmar Grupos e Gerar Relatório</button>
+    </div>
+    <!-- FIM DA ALTERAÇÃO -->
 
     <div id="relatorio" class="relatorio"></div>
     <div id="erro" class="erro"></div>
@@ -52,10 +61,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/litepicker.js"></script>
   
-  <!-- INÍCIO DA CORREÇÃO -->
   <script src="trade-analyzer.js"></script>
-  <!-- FIM DA CORREÇÃO -->
-
   <script src="app.js"></script>
 </body>
 </html>
