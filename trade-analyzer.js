@@ -22,6 +22,9 @@ function legSum(arr, prop) {
 function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
   // Filtro de exclusões e ordenação por data
   let filtered = fills.filter(fill => {
+    // Validação básica da data para evitar erros na ordenação
+    if (!fill.date || isNaN(new Date(fill.date).getTime())) return false;
+
     // Verifica exclusão por símbolo
     const symbolExcluded = (exclusoes.symbols || []).some(exc => fill.symbol.toLowerCase().includes(exc));
     if (symbolExcluded) return false;
@@ -29,11 +32,6 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
     // Verifica exclusão por período de data
     if (exclusoes.dateRange && exclusoes.dateRange.start && exclusoes.dateRange.end) {
         const fillDate = fill.date;
-        
-        if (isNaN(fillDate.getTime())) {
-            return false;
-        }
-
         const startDate = new Date(exclusoes.dateRange.start);
         const endDate = new Date(exclusoes.dateRange.end);
         
@@ -58,56 +56,59 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
     const symbolFills = tradesBySymbol[symbol];
     if (symbolFills.length < 2) continue;
 
-    const legs = [];
+    // ETAPA 1: Agrupar fills consecutivos do mesmo lado em "pernas" (legs).
+    const allLegs = [];
     let currentLeg = [];
     symbolFills.forEach(fill => {
       if (currentLeg.length === 0 || fill.side === currentLeg[0].side) {
         currentLeg.push(fill);
       } else {
-        legs.push(currentLeg);
+        allLegs.push(currentLeg);
         currentLeg = [fill];
       }
     });
-    if (currentLeg.length > 0) legs.push(currentLeg);
+    if (currentLeg.length > 0) allLegs.push(currentLeg);
 
-    // --- INÍCIO DA CORREÇÃO ---
-    // Substituição do laço 'for' por 'while' para garantir o pareamento correto.
-    let i = 0;
-    while (i < legs.length - 1) {
-      const entryLeg = legs[i];
-      const exitLeg = legs[i + 1];
-      const qtyIn = legSum(entryLeg, 'qty');
-      const qtyOut = legSum(exitLeg, 'qty');
+    // --- INÍCIO DA NOVA LÓGICA DE PAREAMENTO ---
+    // ETAPA 2: Iterar sobre as pernas para encontrar pares que formam uma operação.
+    let legs = [...allLegs]; // Cria uma cópia mutável para consumir
+    while (legs.length >= 2) {
+        const entryLeg = legs[0];
+        const exitLeg = legs[1];
 
-      // Verifica se a perna atual e a próxima formam um par com lados opostos e quantidade correspondente
-      if (entryLeg[0].side !== exitLeg[0].side && Math.abs(qtyIn - qtyOut) < 1e-8) {
-        const allFills = [...entryLeg, ...exitLeg];
-        const [buys, sells] = entryLeg[0].side === 'BUY' ? [entryLeg, exitLeg] : [exitLeg, entryLeg];
-        
-        const totalRProfit = legSum(allFills, 'rprofit');
-        const hasRProfitData = allFills.some(f => f.rprofit !== 0);
+        const qtyIn = legSum(entryLeg, 'qty');
+        const qtyOut = legSum(exitLeg, 'qty');
 
-        const resultadoCalculado = hasRProfitData
-          ? totalRProfit
-          : legSum(sells, "amount") - legSum(buys, "amount") - legSum(allFills, "fee");
+        // Verifica se a primeira e a segunda perna são um par válido (lados opostos e quantidade igual)
+        if (entryLeg[0].side !== exitLeg[0].side && Math.abs(qtyIn - qtyOut) < 1e-8) {
+            const allFills = [...entryLeg, ...exitLeg];
+            const [buys, sells] = entryLeg[0].side === 'BUY' ? [entryLeg, exitLeg] : [exitLeg, entryLeg];
+            
+            const totalRProfit = legSum(allFills, 'rprofit');
+            const hasRProfitData = allFills.some(f => f.rprofit !== 0 && f.rprofit !== undefined);
+    
+            const resultadoCalculado = hasRProfitData
+              ? totalRProfit
+              : legSum(sells, "amount") - legSum(buys, "amount") - legSum(allFills, "fee");
+    
+            operacoes.push({
+              symbol: symbol,
+              entrada: buys,
+              saida: sells,
+              totalQty: qtyIn,
+              fees: legSum(allFills, "fee"),
+              resultado: resultadoCalculado,
+            });
 
-        operacoes.push({
-          symbol: symbol,
-          entrada: buys,
-          saida: sells,
-          totalQty: qtyIn,
-          fees: legSum(allFills, "fee"),
-          resultado: resultadoCalculado,
-        });
-        
-        // Se formou um par, pulamos as duas pernas utilizadas para analisar o próximo par possível
-        i += 2;
-      } else {
-        // Se não formou um par, avançamos apenas uma perna para tentar pareá-la com a seguinte
-        i++;
-      }
+            // Se formou um par, remove as duas pernas da lista e continua o loop
+            legs.splice(0, 2);
+        } else {
+            // Se não formou um par, a primeira perna está "aberta" ou órfã.
+            // Removemos apenas ela e tentamos parear a próxima.
+            legs.splice(0, 1);
+        }
     }
-    // --- FIM DA CORREÇÃO ---
+    // --- FIM DA NOVA LÓGICA DE PAREAMENTO ---
   }
 
   operacoes.sort((a, b) => new Date(a.entrada[0].date) - new Date(b.entrada[0].date));
@@ -139,7 +140,6 @@ function recalcularResumo(operacoes, capitalInicial) {
         });
     });
     
-    // --- Cálculo do Drawdown Máximo (PRIORIDADE 3) ---
     let maxDrawdown = 0;
     let peakCapital = capitalInicial;
     capitalEvolution.forEach(point => {
