@@ -1,6 +1,7 @@
 let capitalChartInstance = null; // Para controlar a instância do gráfico
 let fullReportData = null;       // Para armazenar o resultado completo da análise
 let datePicker = null;           // Para a instância do calendário
+let analysisResult = null;       // Para guardar o resultado da análise para a validação
 
 // --- 1. FUNÇÕES DE UTILIDADE ---
 // Responsáveis por tarefas pequenas e reutilizáveis de formatação.
@@ -94,7 +95,6 @@ function updateReportView(r) {
         <tr class="loss-total-row"><td>Prejuízos Totais</td><td>${r.perdas} USDT</td></tr>
         <tr><td>Total de Taxas Pagas</td><td>${r.fees} USDT</td></tr>
         
-        <!-- IMPLEMENTAÇÃO PRIORIDADE 1 e 3 -->
         <tr class="metric-row">
             <td>
                 Payoff Ratio (Ganho Médio / Perda Média)
@@ -123,7 +123,6 @@ function updateReportView(r) {
             <td><b>${r.maxDrawdown}%</b></td>
         </tr>
 
-        <!-- IMPLEMENTAÇÃO PRIORIDADE 2 (Classes aplicadas dinamicamente) -->
         <tr class="${r.liquido > 0 ? 'positive-result' : r.liquido < 0 ? 'negative-result' : 'result-row'}"><td>Resultado Líquido Final</td><td><b>${r.liquido} USDT</b></td></tr>
         <tr class="${r.retorno > 0 ? 'positive-result' : r.retorno < 0 ? 'negative-result' : 'result-row'}"><td>Retorno sobre Capital Inicial</td><td><b>${r.retorno}%</b></td></tr>
       </table>
@@ -195,7 +194,6 @@ function renderOperacoesDetalhadas(operacoes) {
         return ops.map(op => {
             const isWin = op.resultado > 0;
             const isLoss = op.resultado < 0;
-            // IMPLEMENTAÇÃO PRIORIDADE 2
             const resultadoClass = isWin ? 'win-row' : (isLoss ? 'loss-row' : '');
             const resultadoCellClass = isWin ? 'positive-cell' : (isLoss ? 'negative-cell' : '');
             const dataInicio = new Date(op.entrada[0].date).toLocaleString('pt-BR');
@@ -265,11 +263,14 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
   const loading = document.getElementById("loading");
   const relatorioDiv = document.getElementById("relatorio");
   const erroDiv = document.getElementById("erro");
+  const validacaoDiv = document.getElementById("validacao-operacoes");
   const submitButton = document.querySelector("#trade-form button[type='submit']");
+  
   submitButton.disabled = true;
   submitButton.classList.add('button--loading');
 
-  relatorioDiv.innerHTML = '';
+  relatorioDiv.style.display = 'none';
+  validacaoDiv.style.display = 'none';
   erroDiv.style.display = 'none';
   loading.style.display = 'block';
 
@@ -296,9 +297,10 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
   const file = fileInput.files[0];
   const reader = new FileReader();
 
+  let workbook; // Declarar no escopo superior para ser acessível
+
   reader.onload = function(evt) {
     try {
-      let workbook;
       if (file.name.endsWith('.csv')) {
         workbook = XLSX.read(evt.target.result, { type: 'binary' });
       } else {
@@ -315,11 +317,11 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
       
       const fills = data.slice(1).filter(row => row.length > 0 && row[columns.date]).map(row => normalizeRow(row, columns));
       
-      const resumo = analisarOperacoes(fills, capital, exclusoes);
-      fullReportData = resumo;
-      renderLayoutAndControls(resumo);
+      analysisResult = analisarOperacoes(fills, capital, exclusoes);
       
-      document.getElementById('relatorio').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      renderValidationStep(analysisResult, workbook);
+
+      validacaoDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
       
     } catch (err) {
       erroDiv.innerHTML = "Erro ao analisar arquivo: <br>" + err;
@@ -346,6 +348,55 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
   }
 });
 
+function renderValidationStep(result, workbook) {
+    const container = document.getElementById('validation-table-container');
+    const validationDiv = document.getElementById('validacao-operacoes');
+    const relatorioDiv = document.getElementById('relatorio');
+
+    relatorioDiv.style.display = 'none'; 
+    relatorioDiv.innerHTML = '';
+
+    const fillToGroupMap = new Map();
+    result.operacoesProcessadas.forEach((op, index) => {
+        const colorClass = `group-color-${(index % 6) + 1}`;
+        const allFillsInOp = [...op.entrada, ...op.saida];
+        allFillsInOp.forEach(fill => fillToGroupMap.set(fill.raw.join('|'), colorClass));
+    });
+
+    let tableHTML = '<table class="validation-table"><thead><tr>';
+    const originalHeader = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: "" })[0];
+    originalHeader.forEach(h => tableHTML += `<th>${h}</th>`);
+    tableHTML += '</tr></thead><tbody>';
+
+    result.todosOsFills.forEach(fill => {
+        const rowKey = fill.raw.join('|');
+        const groupClass = fillToGroupMap.get(rowKey);
+        const rowClass = groupClass ? groupClass : 'unmatched-row';
+        
+        tableHTML += `<tr class="${rowClass}">`;
+        fill.raw.forEach(cell => tableHTML += `<td>${cell}</td>`);
+        tableHTML += '</tr>';
+    });
+
+    tableHTML += '</tbody></table>';
+    container.innerHTML = tableHTML;
+    validationDiv.style.display = 'block';
+    document.getElementById('reset-btn').style.display = 'inline-block';
+
+    document.getElementById('confirm-groups-btn').onclick = function() {
+        validationDiv.style.display = 'none';
+        relatorioDiv.style.display = 'block';
+
+        const capitalInicial = Number(document.getElementById("capital-inicial").value);
+        const resumoFinal = recalcularResumo(analysisResult.operacoesProcessadas, capitalInicial);
+        fullReportData = resumoFinal; 
+        renderLayoutAndControls(resumoFinal);
+        
+        relatorioDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+}
+
+
 document.addEventListener('DOMContentLoaded', function() {
     datePicker = new Litepicker({
         element: document.getElementById('exclusoes-dates'),
@@ -368,6 +419,7 @@ document.getElementById("reset-btn").addEventListener("click", function() {
         if (datePicker) { datePicker.clearSelection(); }
 
         document.getElementById("relatorio").innerHTML = '';
+        document.getElementById("validacao-operacoes").style.display = 'none';
         const erroDiv = document.getElementById("erro");
         erroDiv.innerHTML = '';
         erroDiv.style.display = 'none';
@@ -378,6 +430,7 @@ document.getElementById("reset-btn").addEventListener("click", function() {
         }
         
         fullReportData = null;
+        analysisResult = null;
         this.style.display = 'none';
     }
 });
