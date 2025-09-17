@@ -17,7 +17,7 @@ function legSum(arr, prop) {
  * @param {Array<Object>} fills Lista de todas as ordens executadas.
  * @param {number} capitalInicial O capital inicial para os cálculos.
  * @param {Object} exclusoes Objeto com filtros de símbolos e datas.
- * @returns {Object} O objeto de resumo da performance.
+ * @returns {Object} Um objeto contendo as operações processadas e todos os fills para validação.
  */
 function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
   // Filtro de exclusões e ordenação por data
@@ -56,10 +56,7 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
     const symbolFills = tradesBySymbol[symbol];
     if (symbolFills.length < 2) continue;
 
-    // --- INÍCIO DA LÓGICA CORRIGIDA ---
-
     // ETAPA 1: Agrupar fills consecutivos do mesmo lado em "pernas" (legs).
-    // Ex: [BUY, BUY, BUY, SELL, SELL] se torna [Leg(BUYs), Leg(SELLs)]
     const allLegs = [];
     let currentLeg = [];
     symbolFills.forEach(fill => {
@@ -73,8 +70,7 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
     if (currentLeg.length > 0) allLegs.push(currentLeg);
 
     // ETAPA 2: Iterar sobre as pernas para encontrar pares que formam uma operação completa.
-    // Esta lógica consome a lista de pernas, garantindo o pareamento sequencial correto.
-    let legs = [...allLegs]; // Cria uma cópia mutável para consumir
+    let legs = [...allLegs]; 
     while (legs.length >= 2) {
         const entryLeg = legs[0];
         const exitLeg = legs[1];
@@ -82,7 +78,6 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
         const qtyIn = legSum(entryLeg, 'qty');
         const qtyOut = legSum(exitLeg, 'qty');
 
-        // Verifica se a primeira e a segunda perna são um par válido (lados opostos e quantidade igual)
         if (entryLeg[0].side !== exitLeg[0].side && Math.abs(qtyIn - qtyOut) < 1e-8) {
             const allFills = [...entryLeg, ...exitLeg];
             const [buys, sells] = entryLeg[0].side === 'BUY' ? [entryLeg, exitLeg] : [exitLeg, entryLeg];
@@ -92,6 +87,7 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
     
             const resultadoCalculado = hasRProfitData
               ? totalRProfit
+              //prettier-ignore
               : legSum(sells, "amount") - legSum(buys, "amount") - legSum(allFills, "fee");
     
             operacoes.push({
@@ -103,20 +99,20 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
               resultado: resultadoCalculado,
             });
 
-            // Se formou um par, remove as duas pernas da lista e continua o loop
             legs.splice(0, 2);
         } else {
-            // Se não formou um par, a primeira perna está "aberta" ou órfã.
-            // Removemos apenas ela e tentamos parear a próxima com sua sucessora.
             legs.splice(0, 1);
         }
     }
-    // --- FIM DA LÓGICA CORRIGIDA ---
   }
 
   operacoes.sort((a, b) => new Date(a.entrada[0].date) - new Date(b.entrada[0].date));
 
-  return recalcularResumo(operacoes, capitalInicial);
+  // Retorna os dados brutos para a etapa de validação
+  return {
+      operacoesProcessadas: operacoes,
+      todosOsFills: filtered 
+  };
 }
 
 /**
@@ -143,7 +139,6 @@ function recalcularResumo(operacoes, capitalInicial) {
         });
     });
     
-    // --- Cálculo do Drawdown Máximo (PRIORIDADE 3) ---
     let maxDrawdown = 0;
     let peakCapital = capitalInicial;
     capitalEvolution.forEach(point => {
