@@ -27,7 +27,13 @@ function normalizeRow(row, columns) {
   function safeGet(idx) {
     return (row[idx] !== undefined && row[idx] !== null) ? row[idx] : '';
   }
+  // INÍCIO DA MUDANÇA 1: Adicionar um ID único ("carimbo digital") a cada transação
+  // Usamos o conteúdo da linha original para criar um ID de texto que será sempre o mesmo para essa transação.
+  const uniqueId = row.join('|');
+  // FIM DA MUDANÇA 1
+
   return {
+    id: uniqueId, // Adicionamos o ID ao objeto
     date: new Date(safeGet(columns.date)),
     symbol: (safeGet(columns.symbol) || '').toString().trim(),
     side: (safeGet(columns.side) || '').toString().trim().toUpperCase(),
@@ -348,13 +354,12 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
   }
 });
 
-// SUBSTITUA a função renderValidationStep inteira por esta versão corrigida:
+// VERSÃO CORRIGIDA E COM LOGS DE DEPURAÇÃO
 function renderValidationStep(result, workbook) {
     const container = document.getElementById('validation-table-container');
     const validationDiv = document.getElementById('validacao-operacoes');
     const relatorioDiv = document.getElementById('relatorio');
     
-    // Limpa listeners antigos para evitar duplicação
     const newContainer = container.cloneNode(false);
     container.parentNode.replaceChild(newContainer, container);
 
@@ -362,15 +367,11 @@ function renderValidationStep(result, workbook) {
     relatorioDiv.innerHTML = '';
 
     const renderTable = () => {
-        const fillToGroupMap = new Map();
+        const fillIdToGroupMap = new Map();
         result.operacoesProcessadas.forEach((op, index) => {
             const colorClass = `group-color-${(index % 6) + 1}`;
-            const allFillsInOp = [...op.entrada, ...op.saida];
-            allFillsInOp.forEach(fill => {
-                const fillIndex = result.todosOsFills.indexOf(fill);
-                if (fillIndex > -1) {
-                    fillToGroupMap.set(fillIndex, colorClass);
-                }
+            [...op.entrada, ...op.saida].forEach(fill => {
+                fillIdToGroupMap.set(fill.id, colorClass);
             });
         });
 
@@ -384,24 +385,24 @@ function renderValidationStep(result, workbook) {
             </thead>
             <tbody>`;
 
-        result.todosOsFills.forEach((fill, index) => {
-            const groupClass = fillToGroupMap.get(index) || 'unmatched-row';
-            tableHTML += `<tr data-fill-index="${index}" class="${groupClass}">
+        result.todosOsFills.forEach(fill => {
+            const groupClass = fillIdToGroupMap.get(fill.id) || 'unmatched-row';
+            // INÍCIO DA MUDANÇA 2: Usar o novo ID único no atributo da linha
+            tableHTML += `<tr data-fill-id="${fill.id}" class="${groupClass}">
                 <td class="select-col"><input type="checkbox" class="row-checkbox" /></td>
                 ${fill.raw.map(cell => `<td>${cell}</td>`).join('')}
             </tr>`;
+            // FIM DA MUDANÇA 2
         });
 
         tableHTML += '</tbody></table>';
         newContainer.innerHTML = tableHTML;
     };
 
-    // DELEGAÇÃO DE EVENTOS: Um único listener no container
     newContainer.addEventListener('click', (e) => {
         const row = e.target.closest('tr');
         if (!row) return;
 
-        // Lógica para o checkbox "Selecionar Todos"
         if (e.target.id === 'select-all-checkbox') {
             const isChecked = e.target.checked;
             newContainer.querySelectorAll('tbody tr').forEach(r => {
@@ -412,40 +413,46 @@ function renderValidationStep(result, workbook) {
             return;
         }
 
-        // Lógica para seleção de linha individual
-        row.classList.toggle('selected');
         const checkbox = row.querySelector('.row-checkbox');
-        if (checkbox) {
-            // Se o clique não foi no próprio checkbox, sincroniza o estado
-            if (e.target !== checkbox) {
-                 checkbox.checked = !checkbox.checked;
-            } else {
-                 // se o clique foi no checkbox, a classe da linha que precisa ser sincronizada
-                 row.classList.toggle('selected', checkbox.checked);
-            }
+        if (checkbox && e.target !== checkbox) {
+             checkbox.checked = !checkbox.checked;
         }
+        row.classList.toggle('selected', checkbox.checked);
     });
 
     document.getElementById('ungroup-btn').onclick = function() {
+        console.log("--- DEBUG: Botão 'Desagrupar' clicado ---");
+
         const selectedRows = newContainer.querySelectorAll('tr.selected');
         if (selectedRows.length === 0) {
             alert('Por favor, selecione as linhas que deseja desagrupar.');
+            console.log("DEBUG: Nenhuma linha selecionada.");
             return;
         }
 
-        const selectedFillIndices = new Set();
+        // INÍCIO DA MUDANÇA 3: Lógica de desagrupamento corrigida usando o ID único
+        const selectedFillIds = new Set();
         selectedRows.forEach(row => {
-            selectedFillIndices.add(parseInt(row.dataset.fillIndex, 10));
+            selectedFillIds.add(row.dataset.fillId);
         });
 
+        console.log(`DEBUG: ${selectedFillIds.size} IDs únicos foram selecionados para desagrupar.`);
+        console.log("DEBUG: IDs:", Array.from(selectedFillIds));
+
+        console.log(`DEBUG: Operações ANTES do filtro: ${result.operacoesProcessadas.length}`);
+
         result.operacoesProcessadas.forEach(op => {
-            op.entrada = op.entrada.filter(fill => !selectedFillIndices.has(result.todosOsFills.indexOf(fill)));
-            op.saida = op.saida.filter(fill => !selectedFillIndices.has(result.todosOsFills.indexOf(fill)));
+            op.entrada = op.entrada.filter(fill => !selectedFillIds.has(fill.id));
+            op.saida = op.saida.filter(fill => !selectedFillIds.has(fill.id));
         });
 
         result.operacoesProcessadas = result.operacoesProcessadas.filter(op => op.entrada.length > 0 || op.saida.length > 0);
+        
+        console.log(`DEBUG: Operações DEPOIS do filtro: ${result.operacoesProcessadas.length}`);
+        // FIM DA MUDANÇA 3
 
         renderTable();
+        console.log("--- DEBUG: Tabela redesenhada ---");
     };
 
     document.getElementById('confirm-groups-btn').onclick = function() {
@@ -459,6 +466,8 @@ function renderValidationStep(result, workbook) {
 
         relatorioDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
+
+
 
     renderTable();
     validationDiv.style.display = 'block';
