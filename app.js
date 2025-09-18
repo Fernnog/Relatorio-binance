@@ -150,6 +150,21 @@ function updateReportView(r) {
       w.document.write('<img src="' + img + '" style="max-width:100%;">');
     });
   }
+
+  // Adicionar botão e lógica para compartilhar o gráfico
+  const chartContainer = document.getElementById('capital-chart-container');
+  chartContainer.insertAdjacentHTML('beforeend', '<button id="share-chart-btn">Compartilhar Gráfico</button>');
+
+  const shareChartButton = document.getElementById('share-chart-btn');
+  shareChartButton.onclick = function() {
+      shareChartButton.style.display = 'none'; // Esconde o botão para a captura
+      html2canvas(chartContainer).then(function(canvas) {
+          shareChartButton.style.display = 'block'; // Mostra o botão novamente
+          let img = canvas.toDataURL('image/png');
+          let w = window.open('');
+          w.document.write('<img src="' + img + '" style="max-width:100%;">');
+      });
+  }
 }
 
 function renderCapitalChart(evolutionData) {
@@ -377,6 +392,28 @@ function renderValidationStep(result, workbook) {
         });
 
         const originalHeader = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: "" })[0];
+        
+        const matchedFills = [];
+        const unmatchedFills = [];
+
+        result.todosOsFills.forEach(fill => {
+            if (fillIdToGroupMap.has(fill.id)) {
+                matchedFills.push(fill);
+            } else {
+                unmatchedFills.push(fill);
+            }
+        });
+
+        const generateRowsHTML = (fills) => {
+            return fills.map(fill => {
+                const groupClass = fillIdToGroupMap.get(fill.id) || 'unmatched-row';
+                return `<tr data-fill-id="${fill.id}" class="${groupClass}">
+                    <td class="select-col"><input type="checkbox" class="row-checkbox" /></td>
+                    ${fill.raw.map(cell => `<td>${cell}</td>`).join('')}
+                </tr>`;
+            }).join('');
+        };
+
         let tableHTML = `<table class="validation-table">
             <thead>
                 <tr>
@@ -385,14 +422,16 @@ function renderValidationStep(result, workbook) {
                 </tr>
             </thead>
             <tbody>`;
+        
+        if (matchedFills.length > 0) {
+            tableHTML += `<tr><td colspan="${originalHeader.length + 1}" class="validation-section-header">Operações Agrupadas</td></tr>`;
+            tableHTML += generateRowsHTML(matchedFills);
+        }
 
-        result.todosOsFills.forEach(fill => {
-            const groupClass = fillIdToGroupMap.get(fill.id) || 'unmatched-row';
-            tableHTML += `<tr data-fill-id="${fill.id}" class="${groupClass}">
-                <td class="select-col"><input type="checkbox" class="row-checkbox" /></td>
-                ${fill.raw.map(cell => `<td>${cell}</td>`).join('')}
-            </tr>`;
-        });
+        if (unmatchedFills.length > 0) {
+            tableHTML += `<tr><td colspan="${originalHeader.length + 1}" class="validation-section-header">Ordens Não Agrupadas</td></tr>`;
+            tableHTML += generateRowsHTML(unmatchedFills);
+        }
 
         tableHTML += '</tbody></table>';
         newContainer.innerHTML = tableHTML;
@@ -442,7 +481,7 @@ function renderValidationStep(result, workbook) {
 
         if (e.target.type === 'checkbox') {
              row.classList.toggle('selected', e.target.checked);
-        } else if (e.target.id !== 'select-all-checkbox') {
+        } else if (e.target.id !== 'select-all-checkbox' && !e.target.classList.contains('validation-section-header')) {
             const checkbox = row.querySelector('.row-checkbox');
             if (checkbox) {
                 checkbox.checked = !checkbox.checked;
