@@ -513,6 +513,9 @@ function renderValidationStep(result, workbook) {
         validationDiv.style.display = 'none';
         relatorioDiv.style.display = 'block';
 
+        // ADICIONADA A LINHA DE CORREÇÃO AQUI
+        result.operacoesProcessadas.sort((a, b) => new Date(a.entrada[0].date) - new Date(b.entrada[0].date));
+
         const capitalInicial = Number(document.getElementById("capital-inicial").value);
         const resumoFinal = recalcularResumo(result.operacoesProcessadas, capitalInicial);
         fullReportData = resumoFinal;
