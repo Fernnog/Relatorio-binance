@@ -381,12 +381,12 @@ button.button--loading::after {
   opacity: 1;
 }
 
-/* --- INÍCIO DAS ALTERAÇÕES: Estilos para a tela de validação --- */
+/* --- INÍCIO DOS ESTILOS PARA A TELA DE VALIDAÇÃO --- */
 
 #validation-table-container {
   max-height: 400px;
   overflow-y: auto;
-  margin-bottom: 1.5em;
+  margin-bottom: 1em; /* Ajustado */
 }
 
 .validation-table {
@@ -405,6 +405,7 @@ button.button--loading::after {
   background-color: #f2f2f2;
   position: sticky;
   top: 0;
+  z-index: 2;
 }
 
 /* Cores para os grupos */
@@ -420,20 +421,31 @@ button.button--loading::after {
   color: #757575;
 }
 
-/* --- FIM DAS ALTERAÇÕES --- */
-
-/* --- INÍCIO DAS ALTERAÇÕES: Estilos para validação interativa --- */
+/* Estilos para validação interativa */
 
 #validation-actions {
   margin-bottom: 1em;
   padding-bottom: 1em;
   border-bottom: 1px solid #e0e4eb;
+  display: flex;
+  gap: 10px;
 }
 
 #validation-actions button {
-  background: #6c757d;
+  background: #1746a0; /* Botão primário */
   font-size: 0.9em;
   padding: .7em 1.5em;
+  margin-top: 0;
+}
+
+#validation-actions #ungroup-btn {
+  background: #6c757d; /* Botão secundário */
+}
+
+#validation-actions button:disabled {
+  background: #a0a5ab;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .validation-table tr {
@@ -451,4 +463,39 @@ button.button--loading::after {
   text-align: center;
 }
 
-/* --- FIM DAS ALTERAÇÕES --- */
+/* Painel de Resumo da Seleção */
+.selection-summary-panel {
+  margin: 1.5em 0;
+  padding: 1em;
+  background: #f0f3f8;
+  border-radius: 6px;
+  border: 1px solid #e0e4eb;
+  font-size: 0.95em;
+  transition: opacity 0.3s ease;
+}
+
+.selection-summary-panel h4 {
+  margin-top: 0;
+  margin-bottom: 0.8em;
+  color: #1746a0;
+}
+
+.summary-line {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.3em;
+  padding: 0.2em 0;
+}
+.summary-line span:first-child {
+  font-weight: bold;
+}
+.summary-line.valid {
+  color: #19a557;
+  font-weight: bold;
+}
+.summary-line.invalid {
+  color: #c0392b;
+  font-weight: bold;
+}
+
+/* --- FIM DOS ESTILOS DE VALIDAÇÃO --- */
