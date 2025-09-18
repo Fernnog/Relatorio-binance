@@ -421,3 +421,34 @@ button.button--loading::after {
 }
 
 /* --- FIM DAS ALTERAÇÕES --- */
+
+/* --- INÍCIO DAS ALTERAÇÕES: Estilos para validação interativa --- */
+
+#validation-actions {
+  margin-bottom: 1em;
+  padding-bottom: 1em;
+  border-bottom: 1px solid #e0e4eb;
+}
+
+#validation-actions button {
+  background: #6c757d;
+  font-size: 0.9em;
+  padding: .7em 1.5em;
+}
+
+.validation-table tr {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.validation-table tr.selected {
+  outline: 2px solid #1746a0;
+  outline-offset: -2px;
+}
+
+.validation-table .select-col {
+  width: 40px;
+  text-align: center;
+}
+
+/* --- FIM DAS ALTERAÇÕES --- */
