@@ -499,3 +499,32 @@ button.button--loading::after {
 }
 
 /* --- FIM DOS ESTILOS DE VALIDAÇÃO --- */
+
+/* NOVOS ESTILOS ADICIONADOS */
+
+#share-chart-btn {
+  display: block;
+  margin: 15px auto 2px auto;
+  background: linear-gradient(90deg, #1abc9c 70%, #1746a0 100%);
+  color: #fff;
+  border: none;
+  padding: 10px 25px;
+  font-size: 1.0em;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: bold;
+  letter-spacing: .03em;
+  transition: 0.15s;
+}
+
+#share-chart-btn:hover { opacity:0.86; }
+
+.validation-section-header {
+  background-color: #eef1ff;
+  color: #1746a0;
+  font-weight: bold;
+  padding: 8px;
+  text-align: center;
+  font-size: 1.1em;
+  border: 1px solid #ddd;
+}
