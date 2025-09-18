@@ -129,10 +129,10 @@ function updateReportView(r) {
         <tr class="${r.liquido > 0 ? 'positive-result' : r.liquido < 0 ? 'negative-result' : 'result-row'}"><td>Resultado Líquido Final</td><td><b>${r.liquido} USDT</b></td></tr>
         <tr class="${r.retorno > 0 ? 'positive-result' : r.retorno < 0 ? 'negative-result' : 'result-row'}"><td>Retorno sobre Capital Inicial</td><td><b>${r.retorno}%</b></td></tr>
       </table>
+      <button id="share-btn">Compartilhar como imagem</button>
     </div>
     <div id="capital-chart-container"></div>
     <div id="operacoes-detalhadas"></div>
-    <button id="share-btn">Compartilhar como imagem</button>
   `;
 
   renderCapitalChart(r.capitalEvolution);
