@@ -27,13 +27,10 @@ function normalizeRow(row, columns) {
   function safeGet(idx) {
     return (row[idx] !== undefined && row[idx] !== null) ? row[idx] : '';
   }
-  // INÍCIO DA MUDANÇA 1: Adicionar um ID único ("carimbo digital") a cada transação
-  // Usamos o conteúdo da linha original para criar um ID de texto que será sempre o mesmo para essa transação.
   const uniqueId = row.join('|');
-  // FIM DA MUDANÇA 1
 
   return {
-    id: uniqueId, // Adicionamos o ID ao objeto
+    id: uniqueId,
     date: new Date(safeGet(columns.date)),
     symbol: (safeGet(columns.symbol) || '').toString().trim(),
     side: (safeGet(columns.side) || '').toString().trim().toUpperCase(),
@@ -354,7 +351,7 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
   }
 });
 
-// VERSÃO CORRIGIDA E COM LOGS DE DEPURAÇÃO
+// VERSÃO FINAL E CORRIGIDA
 function renderValidationStep(result, workbook) {
     const container = document.getElementById('validation-table-container');
     const validationDiv = document.getElementById('validacao-operacoes');
@@ -387,12 +384,10 @@ function renderValidationStep(result, workbook) {
 
         result.todosOsFills.forEach(fill => {
             const groupClass = fillIdToGroupMap.get(fill.id) || 'unmatched-row';
-            // INÍCIO DA MUDANÇA 2: Usar o novo ID único no atributo da linha
             tableHTML += `<tr data-fill-id="${fill.id}" class="${groupClass}">
                 <td class="select-col"><input type="checkbox" class="row-checkbox" /></td>
                 ${fill.raw.map(cell => `<td>${cell}</td>`).join('')}
             </tr>`;
-            // FIM DA MUDANÇA 2
         });
 
         tableHTML += '</tbody></table>';
@@ -429,8 +424,7 @@ function renderValidationStep(result, workbook) {
             console.log("DEBUG: Nenhuma linha selecionada.");
             return;
         }
-
-        // INÍCIO DA MUDANÇA 3: Lógica de desagrupamento corrigida usando o ID único
+        
         const selectedFillIds = new Set();
         selectedRows.forEach(row => {
             selectedFillIds.add(row.dataset.fillId);
@@ -442,6 +436,10 @@ function renderValidationStep(result, workbook) {
         console.log(`DEBUG: Operações ANTES do filtro: ${result.operacoesProcessadas.length}`);
 
         result.operacoesProcessadas.forEach(op => {
+            // O ERRO ESTAVA AQUI: A função .filter() RETORNA um novo array.
+            // Era preciso REATRIBUIR o resultado de volta para op.entrada e op.saida.
+            
+            // A CORREÇÃO É REATRIBUIR O RESULTADO:
             op.entrada = op.entrada.filter(fill => !selectedFillIds.has(fill.id));
             op.saida = op.saida.filter(fill => !selectedFillIds.has(fill.id));
         });
@@ -449,8 +447,7 @@ function renderValidationStep(result, workbook) {
         result.operacoesProcessadas = result.operacoesProcessadas.filter(op => op.entrada.length > 0 || op.saida.length > 0);
         
         console.log(`DEBUG: Operações DEPOIS do filtro: ${result.operacoesProcessadas.length}`);
-        // FIM DA MUDANÇA 3
-
+        
         renderTable();
         console.log("--- DEBUG: Tabela redesenhada ---");
     };
@@ -466,8 +463,6 @@ function renderValidationStep(result, workbook) {
 
         relatorioDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
-
-
 
     renderTable();
     validationDiv.style.display = 'block';
