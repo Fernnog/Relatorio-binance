@@ -348,6 +348,7 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
   }
 });
 
+// SUBSTITUA a função renderValidationStep inteira por esta:
 function renderValidationStep(result, workbook) {
     const container = document.getElementById('validation-table-container');
     const validationDiv = document.getElementById('validacao-operacoes');
@@ -356,44 +357,105 @@ function renderValidationStep(result, workbook) {
     relatorioDiv.style.display = 'none'; 
     relatorioDiv.innerHTML = '';
 
-    const fillToGroupMap = new Map();
-    result.operacoesProcessadas.forEach((op, index) => {
-        const colorClass = `group-color-${(index % 6) + 1}`;
-        const allFillsInOp = [...op.entrada, ...op.saida];
-        allFillsInOp.forEach(fill => fillToGroupMap.set(fill.raw.join('|'), colorClass));
-    });
+    // Função interna para renderizar a tabela com o estado atual
+    function renderTable() {
+        const fillToGroupMap = new Map();
+        result.operacoesProcessadas.forEach((op, index) => {
+            const colorClass = `group-color-${(index % 6) + 1}`;
+            const allFillsInOp = [...op.entrada, ...op.saida];
+            // Usamos o índice do fill no array original como ID único
+            allFillsInOp.forEach(fill => {
+                const fillIndex = result.todosOsFills.indexOf(fill);
+                fillToGroupMap.set(fillIndex, colorClass);
+            });
+        });
 
-    let tableHTML = '<table class="validation-table"><thead><tr>';
-    const originalHeader = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: "" })[0];
-    originalHeader.forEach(h => tableHTML += `<th>${h}</th>`);
-    tableHTML += '</tr></thead><tbody>';
-
-    result.todosOsFills.forEach(fill => {
-        const rowKey = fill.raw.join('|');
-        const groupClass = fillToGroupMap.get(rowKey);
-        const rowClass = groupClass ? groupClass : 'unmatched-row';
+        let tableHTML = '<table class="validation-table"><thead><tr>';
+        const originalHeader = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: "" })[0];
         
-        tableHTML += `<tr class="${rowClass}">`;
-        fill.raw.forEach(cell => tableHTML += `<td>${cell}</td>`);
-        tableHTML += '</tr>';
-    });
+        // Adiciona a coluna de checkbox
+        tableHTML += `<th class="select-col"><input type="checkbox" id="select-all-checkbox" /></th>`;
+        originalHeader.forEach(h => tableHTML += `<th>${h}</th>`);
+        tableHTML += '</tr></thead><tbody>';
 
-    tableHTML += '</tbody></table>';
-    container.innerHTML = tableHTML;
-    validationDiv.style.display = 'block';
-    document.getElementById('reset-btn').style.display = 'inline-block';
+        result.todosOsFills.forEach((fill, index) => {
+            const groupClass = fillToGroupMap.get(index) || 'unmatched-row';
+            
+            tableHTML += `<tr data-fill-index="${index}" class="${groupClass}">`;
+            // Adiciona a célula do checkbox
+            tableHTML += `<td class="select-col"><input type="checkbox" class="row-checkbox" /></td>`;
+            fill.raw.forEach(cell => tableHTML += `<td>${cell}</td>`);
+            tableHTML += '</tr>';
+        });
 
+        tableHTML += '</tbody></table>';
+        container.innerHTML = tableHTML;
+
+        // Adiciona os event listeners para seleção
+        const tableBody = container.querySelector('tbody');
+        tableBody.addEventListener('click', (e) => {
+            const row = e.target.closest('tr');
+            if (!row) return;
+            
+            row.classList.toggle('selected');
+            const checkbox = row.querySelector('.row-checkbox');
+            if (checkbox) checkbox.checked = row.classList.contains('selected');
+        });
+
+        document.getElementById('select-all-checkbox').addEventListener('change', function(e) {
+            const isChecked = e.target.checked;
+            tableBody.querySelectorAll('tr').forEach(row => {
+                row.classList.toggle('selected', isChecked);
+                const checkbox = row.querySelector('.row-checkbox');
+                if (checkbox) checkbox.checked = isChecked;
+            });
+        });
+    }
+
+    // Lógica para o botão de desagrupar
+    document.getElementById('ungroup-btn').onclick = function() {
+        const selectedRows = container.querySelectorAll('tr.selected');
+        if (selectedRows.length === 0) {
+            alert('Por favor, selecione as linhas que deseja desagrupar.');
+            return;
+        }
+
+        const selectedFillIndices = new Set();
+        selectedRows.forEach(row => {
+            selectedFillIndices.add(parseInt(row.dataset.fillIndex, 10));
+        });
+
+        // Filtra o array de operações, removendo os fills selecionados
+        result.operacoesProcessadas.forEach(op => {
+            op.entrada = op.entrada.filter(fill => !selectedFillIndices.has(result.todosOsFills.indexOf(fill)));
+            op.saida = op.saida.filter(fill => !selectedFillIndices.has(result.todosOsFills.indexOf(fill)));
+        });
+
+        // Remove operações que ficaram vazias
+        result.operacoesProcessadas = result.operacoesProcessadas.filter(op => op.entrada.length > 0 || op.saida.length > 0);
+
+        // Re-renderiza a tabela com o estado atualizado
+        renderTable();
+    };
+
+    // Lógica do botão de confirmação (semelhante à anterior)
     document.getElementById('confirm-groups-btn').onclick = function() {
         validationDiv.style.display = 'none';
         relatorioDiv.style.display = 'block';
 
         const capitalInicial = Number(document.getElementById("capital-inicial").value);
-        const resumoFinal = recalcularResumo(analysisResult.operacoesProcessadas, capitalInicial);
+        // Usa o `result.operacoesProcessadas` que pode ter sido modificado pelo usuário
+        const resumoFinal = recalcularResumo(result.operacoesProcessadas, capitalInicial);
         fullReportData = resumoFinal; 
         renderLayoutAndControls(resumoFinal);
         
         relatorioDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
+
+    // Primeira renderização
+    renderTable();
+    validationDiv.style.display = 'block';
+    document.getElementById('reset-btn').style.display = 'inline-block';
 }
 
 
