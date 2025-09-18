@@ -44,21 +44,27 @@
       Analisando operações, por favor aguarde...
     </div>
 
-    <!-- INÍCIO DA ALTERAÇÃO: Nova etapa de validação -->
+    <!-- Etapa de validação interativa -->
     <div id="validacao-operacoes" class="relatorio" style="display: none;">
       <h3>Validação de Agrupamentos</h3>
-      <p>Verifique os agrupamentos de operações identificados abaixo. As linhas com a mesma cor pertencem à mesma operação. As linhas sem cor não foram agrupadas.</p>
+      <p>Selecione as linhas para criar ou desagrupar operações. Use a tabela abaixo para refinar os grupos antes de gerar o relatório final.</p>
       
-      <!-- NOVO BLOCO DE AÇÕES -->
+      <!-- Bloco de ações com os novos botões -->
       <div id="validation-actions">
-        <button id="ungroup-btn">Desagrupar Selecionados</button>
+        <button id="create-group-btn" disabled>Criar Novo Grupo</button>
+        <button id="ungroup-btn" disabled>Desagrupar Selecionados</button>
       </div>
-      <!-- FIM DO NOVO BLOCO -->
+      <!-- Fim do bloco de ações -->
 
       <div id="validation-table-container"></div>
+
+      <!-- Painel de Resumo da Seleção em tempo real -->
+      <div id="selection-summary" class="selection-summary-panel" style="display: none;"></div>
+      <!-- Fim do painel -->
+
       <button id="confirm-groups-btn">Confirmar Grupos e Gerar Relatório</button>
     </div>
-    <!-- FIM DA ALTERAÇÃO -->
+    <!-- Fim da etapa de validação -->
 
     <div id="relatorio" class="relatorio"></div>
     <div id="erro" class="erro"></div>
