@@ -27,7 +27,7 @@ function normalizeRow(row, columns) {
   function safeGet(idx) {
     return (row[idx] !== undefined && row[idx] !== null) ? row[idx] : '';
   }
-  const uniqueId = row.join('|');
+  const uniqueId = row.join('|') + Math.random(); // Add random to ensure uniqueness
 
   return {
     id: uniqueId,
@@ -300,7 +300,7 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
   const file = fileInput.files[0];
   const reader = new FileReader();
 
-  let workbook; // Declarar no escopo superior para ser acessível
+  let workbook; 
 
   reader.onload = function(evt) {
     try {
@@ -351,12 +351,16 @@ document.getElementById("trade-form").addEventListener("submit", function(e) {
   }
 });
 
-// VERSÃO FINAL E CORRIGIDA
+// --- 4. FUNÇÃO DE VALIDAÇÃO INTERATIVA (VERSÃO FINAL COM MELHORIAS) ---
 function renderValidationStep(result, workbook) {
     const container = document.getElementById('validation-table-container');
     const validationDiv = document.getElementById('validacao-operacoes');
     const relatorioDiv = document.getElementById('relatorio');
     
+    const createBtn = document.getElementById('create-group-btn');
+    const ungroupBtn = document.getElementById('ungroup-btn');
+    const summaryPanel = document.getElementById('selection-summary');
+
     const newContainer = container.cloneNode(false);
     container.parentNode.replaceChild(newContainer, container);
 
@@ -394,62 +398,115 @@ function renderValidationStep(result, workbook) {
         newContainer.innerHTML = tableHTML;
     };
 
+    const updateValidationUI = () => {
+        const selectedRows = Array.from(newContainer.querySelectorAll('tr.selected'));
+        const selectedUnmatched = selectedRows.filter(r => r.classList.contains('unmatched-row'));
+        const selectedMatched = selectedRows.filter(r => !r.classList.contains('unmatched-row'));
+
+        createBtn.disabled = selectedUnmatched.length < 2 || selectedMatched.length > 0;
+        ungroupBtn.disabled = selectedMatched.length < 1 || selectedUnmatched.length > 0;
+        
+        if (selectedUnmatched.length === 0) {
+            summaryPanel.style.display = 'none';
+            return;
+        }
+
+        summaryPanel.style.display = 'block';
+        const selectedFillIds = new Set(selectedUnmatched.map(row => row.dataset.fillId));
+        const selectedFills = result.todosOsFills.filter(fill => selectedFillIds.has(fill.id));
+        
+        const symbol = selectedFills.length > 0 ? selectedFills[0].symbol : 'N/A';
+        const symbolsMatch = selectedFills.every(f => f.symbol === symbol);
+
+        const buys = selectedFills.filter(f => f.side === 'BUY');
+        const sells = selectedFills.filter(f => f.side === 'SELL');
+        const qtyIn = legSum(buys, 'qty');
+        const qtyOut = legSum(sells, 'qty');
+        const diff = qtyIn - qtyOut;
+        const quantitiesMatch = Math.abs(diff) < 1e-8;
+        
+        const diffClass = quantitiesMatch ? 'valid' : 'invalid';
+
+        summaryPanel.innerHTML = `
+            <h4>Resumo da Seleção</h4>
+            <div class="summary-line"><span>Símbolo:</span> <span>${symbolsMatch ? symbol : '<span class="invalid">Símbolos Misturados!</span>'}</span></div>
+            <div class="summary-line"><span>Total Comprado:</span> <span>+${qtyIn.toFixed(8)}</span></div>
+            <div class="summary-line"><span>Total Vendido:</span> <span>-${qtyOut.toFixed(8)}</span></div>
+            <div class="summary-line ${diffClass}"><span>Diferença:</span> <span>${diff.toFixed(8)}</span></div>
+        `;
+    };
+
     newContainer.addEventListener('click', (e) => {
         const row = e.target.closest('tr');
-        if (!row) return;
+        if (!row || !row.dataset.fillId) return;
 
-        if (e.target.id === 'select-all-checkbox') {
-            const isChecked = e.target.checked;
-            newContainer.querySelectorAll('tbody tr').forEach(r => {
-                r.classList.toggle('selected', isChecked);
-                const cb = r.querySelector('.row-checkbox');
-                if (cb) cb.checked = isChecked;
-            });
-            return;
-        }
-
-        const checkbox = row.querySelector('.row-checkbox');
-        if (checkbox && e.target !== checkbox) {
-             checkbox.checked = !checkbox.checked;
-        }
-        row.classList.toggle('selected', checkbox.checked);
-    });
-
-    document.getElementById('ungroup-btn').onclick = function() {
-        console.log("--- DEBUG: Botão 'Desagrupar' clicado ---");
-
-        const selectedRows = newContainer.querySelectorAll('tr.selected');
-        if (selectedRows.length === 0) {
-            alert('Por favor, selecione as linhas que deseja desagrupar.');
-            console.log("DEBUG: Nenhuma linha selecionada.");
-            return;
+        if (e.target.type === 'checkbox') {
+             row.classList.toggle('selected', e.target.checked);
+        } else if (e.target.id !== 'select-all-checkbox') {
+            const checkbox = row.querySelector('.row-checkbox');
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                row.classList.toggle('selected', checkbox.checked);
+            }
         }
         
-        const selectedFillIds = new Set();
-        selectedRows.forEach(row => {
-            selectedFillIds.add(row.dataset.fillId);
+        if(e.target.id === 'select-all-checkbox') {
+            const isChecked = e.target.checked;
+            newContainer.querySelectorAll('tbody .row-checkbox').forEach(cb => {
+                cb.checked = isChecked;
+                cb.closest('tr').classList.toggle('selected', isChecked);
+            });
+        }
+        updateValidationUI();
+    });
+
+    createBtn.onclick = function() {
+        const selectedUnmatched = newContainer.querySelectorAll('tr.selected.unmatched-row');
+        const selectedFillIds = new Set(Array.from(selectedUnmatched).map(row => row.dataset.fillId));
+        const selectedFills = result.todosOsFills.filter(fill => selectedFillIds.has(fill.id));
+
+        const symbol = selectedFills[0].symbol;
+        if (!selectedFills.every(f => f.symbol === symbol)) {
+            alert('Erro: Todas as ordens selecionadas devem pertencer ao mesmo símbolo.'); return;
+        }
+
+        const buys = selectedFills.filter(f => f.side === 'BUY');
+        const sells = selectedFills.filter(f => f.side === 'SELL');
+        if (buys.length === 0 || sells.length === 0) {
+            alert('Erro: Uma operação deve conter pelo menos uma compra e uma venda.'); return;
+        }
+
+        const qtyIn = legSum(buys, 'qty');
+        const qtyOut = legSum(sells, 'qty');
+        if (Math.abs(qtyIn - qtyOut) > 1e-8) {
+            alert(`Erro: As quantidades não batem. Diferença de ${ (qtyIn - qtyOut).toFixed(8) }.`); return;
+        }
+        
+        const hasRProfitData = selectedFills.some(f => f.rprofit !== 0 && f.rprofit !== undefined);
+        const resultadoCalculado = hasRProfitData ? legSum(selectedFills, 'rprofit') : legSum(sells, "amount") - legSum(buys, "amount") - legSum(selectedFills, "fee");
+
+        result.operacoesProcessadas.push({
+            symbol: symbol, entrada: buys, saida: sells, totalQty: qtyIn,
+            fees: legSum(selectedFills, "fee"), resultado: resultadoCalculado,
         });
+        
+        renderTable();
+        updateValidationUI();
+    };
 
-        console.log(`DEBUG: ${selectedFillIds.size} IDs únicos foram selecionados para desagrupar.`);
-        console.log("DEBUG: IDs:", Array.from(selectedFillIds));
-
-        console.log(`DEBUG: Operações ANTES do filtro: ${result.operacoesProcessadas.length}`);
+    ungroupBtn.onclick = function() {
+        const selectedMatched = newContainer.querySelectorAll('tr.selected:not(.unmatched-row)');
+        const selectedFillIds = new Set(Array.from(selectedMatched).map(row => row.dataset.fillId));
 
         result.operacoesProcessadas.forEach(op => {
-            // O ERRO ESTAVA AQUI: A função .filter() RETORNA um novo array.
-            // Era preciso REATRIBUIR o resultado de volta para op.entrada e op.saida.
-            
-            // A CORREÇÃO É REATRIBUIR O RESULTADO:
             op.entrada = op.entrada.filter(fill => !selectedFillIds.has(fill.id));
             op.saida = op.saida.filter(fill => !selectedFillIds.has(fill.id));
         });
 
-        result.operacoesProcessadas = result.operacoesProcessadas.filter(op => op.entrada.length > 0 || op.saida.length > 0);
-        
-        console.log(`DEBUG: Operações DEPOIS do filtro: ${result.operacoesProcessadas.length}`);
+        result.operacoesProcessadas = result.operacoesProcessadas.filter(op => op.entrada.length > 0 && op.saida.length > 0);
         
         renderTable();
-        console.log("--- DEBUG: Tabela redesenhada ---");
+        updateValidationUI();
     };
 
     document.getElementById('confirm-groups-btn').onclick = function() {
