@@ -123,6 +123,7 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
  */
 function recalcularResumo(operacoes, capitalInicial) {
     let ganhos = 0, perdas = 0, fees = 0, lucro = 0, win = 0, loss = 0, neutro = 0;
+    let ganhosBrutos = 0, perdasBrutas = 0; // <-- NOVAS VARIÁVEIS
     const capitalEvolution = [{ date: 'Início', capital: capitalInicial }];
     let capitalAtual = capitalInicial;
 
@@ -131,6 +132,15 @@ function recalcularResumo(operacoes, capitalInicial) {
         if (op.resultado > 0) { ganhos += op.resultado; win++; }
         else if (op.resultado < 0) { perdas += op.resultado; loss++; }
         else neutro++;
+        
+        // NOVA LÓGICA PARA VALORES BRUTOS
+        const resultadoBruto = op.resultado + op.fees;
+        if (resultadoBruto > 0) {
+            ganhosBrutos += resultadoBruto;
+        } else if (resultadoBruto < 0) {
+            perdasBrutas += resultadoBruto;
+        }
+
         lucro += op.resultado;
         capitalAtual += op.resultado;
         capitalEvolution.push({
@@ -161,6 +171,8 @@ function recalcularResumo(operacoes, capitalInicial) {
     return {
         total: operacoes.length, wins: win, losses: loss, neutros: neutro,
         taxaAcerto: operacoes.length ? ((win / operacoes.length) * 100).toFixed(2) : '0.00',
+        ganhosBrutos: ganhosBrutos.toFixed(2),
+        perdasBrutas: perdasBrutas.toFixed(2),
         ganhos: ganhos.toFixed(2), perdas: perdas.toFixed(2),
         fees: fees.toFixed(2), liquido: lucro.toFixed(2),
         retorno: operacoes.length && capitalInicial ? ((lucro / capitalInicial) * 100).toFixed(2) : '0.00',
