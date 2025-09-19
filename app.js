@@ -94,10 +94,38 @@ function updateReportView(r) {
         <tr><td>Operações com Prejuízo</td><td>${r.losses}</td></tr>
         <tr><td>Operações Neutras</td><td>${r.neutros}</td></tr>
         <tr><td>Taxa de Acerto</td><td>${r.taxaAcerto}%</td></tr>
-        <tr class="total-row"><td>Ganhos Totais</td><td>+${r.ganhos} USDT</td></tr>
-        <tr class="loss-total-row"><td>Prejuízos Totais</td><td>${r.perdas} USDT</td></tr>
+        
+        <tr class="total-row">
+            <td>
+                Ganhos Brutos (antes das taxas)
+                <span class="info-icon">i
+                    <span class="tooltip">Soma de todas as operações com resultado positivo, sem descontar as taxas.</span>
+                </span>
+            </td>
+            <td>+${r.ganhosBrutos} USDT</td>
+          </tr>
+          <tr class="loss-total-row">
+            <td>
+                Prejuízos Brutos (antes das taxas)
+                <span class="info-icon">i
+                    <span class="tooltip">Soma de todas as operações com resultado negativo, sem descontar as taxas.</span>
+                </span>
+            </td>
+            <td>${r.perdasBrutas} USDT</td>
+          </tr>
         <tr><td>Total de Taxas Pagas</td><td>${r.fees} USDT</td></tr>
         
+        <tr class="${r.liquido > 0 ? 'positive-result' : r.liquido < 0 ? 'negative-result' : 'result-row'}">
+            <td>
+                Resultado Líquido Final
+                <span class="info-icon">i
+                    <span class="tooltip">Resultado final após somar todos os ganhos e perdas e subtrair todas as taxas. (Ganhos Brutos + Prejuízos Brutos - Taxas)</span>
+                </span>
+            </td>
+            <td><b>${r.liquido} USDT</b></td>
+        </tr>
+        <tr class="${r.retorno > 0 ? 'positive-result' : r.retorno < 0 ? 'negative-result' : 'result-row'}"><td>Retorno sobre Capital Inicial</td><td><b>${r.retorno}%</b></td></tr>
+
         <tr class="metric-row">
             <td>
                 Payoff Ratio (Ganho Médio / Perda Média)
@@ -125,9 +153,6 @@ function updateReportView(r) {
             </td>
             <td><b>${r.maxDrawdown}%</b></td>
         </tr>
-
-        <tr class="${r.liquido > 0 ? 'positive-result' : r.liquido < 0 ? 'negative-result' : 'result-row'}"><td>Resultado Líquido Final</td><td><b>${r.liquido} USDT</b></td></tr>
-        <tr class="${r.retorno > 0 ? 'positive-result' : r.retorno < 0 ? 'negative-result' : 'result-row'}"><td>Retorno sobre Capital Inicial</td><td><b>${r.retorno}%</b></td></tr>
       </table>
       <button id="share-btn">Compartilhar como imagem</button>
     </div>
@@ -552,12 +577,19 @@ function renderValidationStep(result, workbook) {
         validationDiv.style.display = 'none';
         relatorioDiv.style.display = 'block';
 
-        // ADICIONADA A LINHA DE CORREÇÃO AQUI
         result.operacoesProcessadas.sort((a, b) => new Date(a.entrada[0].date) - new Date(b.entrada[0].date));
 
         const capitalInicial = Number(document.getElementById("capital-inicial").value);
         const resumoFinal = recalcularResumo(result.operacoesProcessadas, capitalInicial);
         fullReportData = resumoFinal;
+        
+        try {
+            localStorage.setItem('tradeReportData', JSON.stringify(resumoFinal));
+            localStorage.setItem('tradeReportCapital', capitalInicial);
+        } catch (e) {
+            console.error("Não foi possível salvar o relatório no LocalStorage.", e);
+        }
+
         renderLayoutAndControls(resumoFinal);
 
         relatorioDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -583,10 +615,31 @@ document.addEventListener('DOMContentLoaded', function() {
             apply: 'Aplicar',
         },
     });
+
+    const savedReport = localStorage.getItem('tradeReportData');
+    const savedCapital = localStorage.getItem('tradeReportCapital');
+    if (savedReport && savedCapital) {
+        try {
+            const reportData = JSON.parse(savedReport);
+            fullReportData = reportData;
+            document.getElementById('capital-inicial').value = savedCapital;
+            
+            document.getElementById('trade-form').style.display = 'none';
+            renderLayoutAndControls(reportData);
+            document.getElementById('relatorio').style.display = 'block';
+            document.getElementById('reset-btn').style.display = 'inline-block';
+        } catch (e) {
+            console.error("Erro ao carregar relatório salvo.", e);
+            localStorage.clear();
+        }
+    }
 });
 
 document.getElementById("reset-btn").addEventListener("click", function() {
     if (confirm("Tem certeza que deseja limpar o relatório e começar uma nova análise?")) {
+        localStorage.removeItem('tradeReportData');
+        localStorage.removeItem('tradeReportCapital');
+
         document.getElementById("trade-form").reset();
         if (datePicker) { datePicker.clearSelection(); }
 
@@ -604,5 +657,6 @@ document.getElementById("reset-btn").addEventListener("click", function() {
         fullReportData = null;
         analysisResult = null;
         this.style.display = 'none';
+        document.getElementById('trade-form').style.display = 'block';
     }
 });
