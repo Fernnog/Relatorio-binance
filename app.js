@@ -158,6 +158,25 @@ function updateReportView(r) {
     </div>
     <div id="capital-chart-container"></div>
     <div id="operacoes-detalhadas"></div>
+    <!-- NOVA SEÇÃO DE IA -->
+    <div id="ia-insights-section" style="display: none;">
+      <h3 class="detalhes-title">Insights da Análise (com Gemini AI)</h3>
+      <div id="ia-call-to-action">
+        <p>Use o poder da IA para descobrir padrões e receber recomendações personalizadas.</p>
+        <button id="generate-ia-insights-btn">✨ Gerar Análise Avançada com IA</button>
+      </div>
+      <div id="ia-loading" class="loading-indicator" style="display: none;"></div>
+      <div id="ia-results-wrapper"></div>
+
+      <div id="ia-chat-wrapper" style="display: none;">
+        <h4 class="chat-title">Converse com Seus Dados</h4>
+        <div id="chat-history"></div>
+        <form id="chat-form">
+          <input type="text" id="chat-input" placeholder="Ex: Quantos trades eu fiz com BTCUSDT?" required autocomplete="off">
+          <button type="submit">Enviar</button>
+        </form>
+      </div>
+    </div>
   `;
 
   renderCapitalChart(r.capitalEvolution);
@@ -176,20 +195,22 @@ function updateReportView(r) {
     });
   }
 
-  // Adicionar botão e lógica para compartilhar o gráfico
   const chartContainer = document.getElementById('capital-chart-container');
   chartContainer.insertAdjacentHTML('beforeend', '<button id="share-chart-btn">Compartilhar Gráfico</button>');
 
   const shareChartButton = document.getElementById('share-chart-btn');
   shareChartButton.onclick = function() {
-      shareChartButton.style.display = 'none'; // Esconde o botão para a captura
+      shareChartButton.style.display = 'none'; 
       html2canvas(chartContainer).then(function(canvas) {
-          shareChartButton.style.display = 'block'; // Mostra o botão novamente
+          shareChartButton.style.display = 'block'; 
           let img = canvas.toDataURL('image/png');
           let w = window.open('');
           w.document.write('<img src="' + img + '" style="max-width:100%;">');
       });
   }
+
+  // Ponto de entrada para a nova funcionalidade de IA
+  setupIASection();
 }
 
 function renderCapitalChart(evolutionData) {
@@ -586,6 +607,8 @@ function renderValidationStep(result, workbook) {
         try {
             localStorage.setItem('tradeReportData', JSON.stringify(resumoFinal));
             localStorage.setItem('tradeReportCapital', capitalInicial);
+            // Limpa insights antigos ao gerar novo relatório
+            localStorage.removeItem('aiInsights');
         } catch (e) {
             console.error("Não foi possível salvar o relatório no LocalStorage.", e);
         }
@@ -600,6 +623,152 @@ function renderValidationStep(result, workbook) {
     document.getElementById('reset-btn').style.display = 'inline-block';
 }
 
+// --- 5. LÓGICA DA PLATAFORMA DE IA ---
+
+/**
+ * Prepara os dados de operações validadas para serem enviados para a IA.
+ * @returns {string|null} Os dados em formato CSV ou nulo se não houver dados.
+ */
+function getOperationsAsCsv() {
+  if (!fullReportData || !fullReportData.operacoes) return null;
+  const header = "symbol,startDate,result,fees,winLoss\n";
+  const rows = fullReportData.operacoes.map(op => {
+    const symbol = op.symbol;
+    const startDate = new Date(op.entrada[0].date).toISOString().split('T')[0];
+    const result = op.resultado.toFixed(2);
+    const fees = op.fees.toFixed(2);
+    const winLoss = op.resultado > 0 ? 1 : 0;
+    return `${symbol},${startDate},${result},${fees},${winLoss}`;
+  }).join('\n');
+  return header + rows;
+}
+
+/**
+ * Ponto de entrada principal para a seção de IA.
+ * Verifica se há insights salvos e renderiza, ou prepara o botão para gerá-los.
+ */
+function setupIASection() {
+    const insightsSection = document.getElementById('ia-insights-section');
+    if (!fullReportData || !fullReportData.operacoes || fullReportData.operacoes.length === 0) return;
+    
+    insightsSection.style.display = 'block';
+
+    const savedInsights = localStorage.getItem('aiInsights');
+
+    if (savedInsights) {
+        renderInsights(JSON.parse(savedInsights));
+        document.getElementById('ia-call-to-action').style.display = 'none';
+    } else {
+        document.getElementById('generate-ia-insights-btn').addEventListener('click', handleGenerateInsights);
+    }
+}
+
+/**
+ * Manipula o evento de clique para gerar novos insights da IA.
+ */
+async function handleGenerateInsights() {
+  const ctaDiv = document.getElementById('ia-call-to-action');
+  const loadingDiv = document.getElementById('ia-loading');
+  const resultsWrapper = document.getElementById('ia-results-wrapper');
+
+  ctaDiv.style.display = 'none';
+  loadingDiv.style.display = 'block';
+  loadingDiv.textContent = 'Analisando seus trades... A IA pode levar alguns segundos.';
+  resultsWrapper.innerHTML = '';
+
+  try {
+    const csvData = getOperationsAsCsv();
+    // Assumimos que getAIInsights está disponível globalmente a partir de api-client.js
+    const insights = await getAIInsights(csvData); 
+    localStorage.setItem('aiInsights', JSON.stringify(insights));
+    renderInsights(insights);
+  } catch (error) {
+    resultsWrapper.innerHTML = `<p class="erro" style="display: block;">Falha ao gerar insights. (${error.message})</p>`;
+    ctaDiv.style.display = 'block'; // Permite ao usuário tentar novamente
+  } finally {
+    loadingDiv.style.display = 'none';
+  }
+}
+
+/**
+ * Renderiza os cartões de insight na página e ativa a seção de chat.
+ * @param {Array<Object>} insights - O array de insights recebido da IA.
+ */
+function renderInsights(insights) {
+  const resultsWrapper = document.getElementById('ia-results-wrapper');
+  const chatWrapper = document.getElementById('ia-chat-wrapper');
+  
+  if (!insights || insights.length === 0) {
+    resultsWrapper.innerHTML = '<p>A IA não encontrou insights significativos para este conjunto de dados.</p>';
+    return;
+  }
+
+  resultsWrapper.innerHTML = insights.map(insight => `
+    <div class="insight-card">
+      <h4>${insight.title}</h4>
+      <div class="evidence">
+        <p><strong>Evidência:</strong> ${insight.evidence}</p>
+      </div>
+      <div class="recommendation">
+        <p><strong>Recomendação:</strong> ${insight.recommendation}</p>
+      </div>
+    </div>
+  `).join('');
+  
+  // Mostra o chat APÓS renderizar os insights
+  chatWrapper.style.display = 'block';
+  setupAIChat();
+}
+
+/**
+ * Adiciona os event listeners e a lógica para a interface de chat.
+ */
+function setupAIChat() {
+  const form = document.getElementById('chat-form');
+  const input = document.getElementById('chat-input');
+  
+  // Evita adicionar múltiplos listeners se a função for chamada novamente
+  form.outerHTML = form.outerHTML; 
+  document.getElementById('chat-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const question = document.getElementById('chat-input').value.trim();
+    if (!question) return;
+
+    addMessageToHistory(question, 'user');
+    document.getElementById('chat-input').value = '';
+    document.getElementById('chat-input').disabled = true;
+
+    try {
+      const csvData = getOperationsAsCsv();
+      // Assumimos que askAIChat está disponível globalmente a partir de api-client.js
+      const result = await askAIChat(question, csvData);
+      addMessageToHistory(result.answer, 'ai');
+    } catch (error) {
+      addMessageToHistory(`Desculpe, ocorreu um erro: ${error.message}`, 'ai');
+    } finally {
+      document.getElementById('chat-input').disabled = false;
+      document.getElementById('chat-input').focus();
+    }
+  });
+}
+
+/**
+ * Adiciona uma nova mensagem à janela de histórico do chat.
+ * @param {string} message - O texto da mensagem.
+ * @param {string} sender - 'user' ou 'ai'.
+ */
+function addMessageToHistory(message, sender) {
+  const history = document.getElementById('chat-history');
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `chat-message ${sender}-message`;
+  // Para renderizar quebras de linha enviadas pela IA, se houver
+  msgDiv.innerHTML = message.replace(/\n/g, '<br>');
+  history.appendChild(msgDiv);
+  history.scrollTop = history.scrollHeight; // Rola para a mensagem mais recente
+}
+
+
+// --- 6. INICIALIZAÇÃO E EVENTOS GERAIS ---
 
 document.addEventListener('DOMContentLoaded', function() {
     datePicker = new Litepicker({
@@ -636,9 +805,10 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.getElementById("reset-btn").addEventListener("click", function() {
-    if (confirm("Tem certeza que deseja limpar o relatório e começar uma nova análise?")) {
+    if (confirm("Tem certeza que deseja limpar o relatório e começar uma nova análise? Isso também apagará os insights da IA.")) {
         localStorage.removeItem('tradeReportData');
         localStorage.removeItem('tradeReportCapital');
+        localStorage.removeItem('aiInsights'); // Limpa também os insights
 
         document.getElementById("trade-form").reset();
         if (datePicker) { datePicker.clearSelection(); }
