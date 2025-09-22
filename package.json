@@ -1,0 +1,15 @@
+{
+  "name": "trade-report-analyzer",
+  "version": "1.0.0",
+  "description": "Analisador de performance de trades com insights de IA.",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google/generative-ai": "^0.11.3"
+  }
+}
