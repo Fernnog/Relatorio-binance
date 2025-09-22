@@ -5,6 +5,8 @@
  * de forma limpa e padronizada.
  */
 
+// NOTA: A variável API_BASE_URL é definida em config.js e carregada no index.html
+
 /**
  * Envia os dados de operações para a análise inicial da IA e retorna os insights.
  * @param {string} operationsCsv - A string contendo os dados de trade em formato CSV.
@@ -13,7 +15,8 @@
  */
 async function getAIInsights(operationsCsv) {
   try {
-    const response = await fetch('/api/analyze-trades', {
+    // MODIFICAÇÃO: Adicionado API_BASE_URL ao início do caminho
+    const response = await fetch(`${API_BASE_URL}/api/analyze-trades`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -22,14 +25,19 @@ async function getAIInsights(operationsCsv) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      // Melhoria: Tenta ler o erro como JSON, se falhar, usa o texto.
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch(e) {
+        errorData = { error: await response.text() };
+      }
       throw new Error(errorData.error || `Erro na API de Análise: Status ${response.status}`);
     }
 
     return response.json();
   } catch (error) {
     console.error('Falha ao buscar insights da IA:', error);
-    // Propaga o erro para que a interface do usuário possa tratá-lo.
     throw error;
   }
 }
@@ -43,7 +51,8 @@ async function getAIInsights(operationsCsv) {
  */
 async function askAIChat(question, operationsCsv) {
   try {
-    const response = await fetch('/api/chat-with-trades', {
+    // MODIFICAÇÃO: Adicionado API_BASE_URL ao início do caminho
+    const response = await fetch(`${API_BASE_URL}/api/chat-with-trades`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -52,14 +61,18 @@ async function askAIChat(question, operationsCsv) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch(e) {
+         errorData = { answer: await response.text() };
+      }
       throw new Error(errorData.answer || `Erro na API de Chat: Status ${response.status}`);
     }
 
     return response.json();
   } catch (error) {
     console.error('Falha ao interagir com o chat da IA:', error);
-    // Propaga o erro para ser tratado pela UI.
     throw error;
   }
 }
