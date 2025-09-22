@@ -12,28 +12,46 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 // Carregue-a a partir de Variáveis de Ambiente seguras da sua plataforma de hospedagem.
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+// --- INÍCIO DA CONFIGURAÇÃO DE CORS ---
+const allowedOrigin = 'https://fernnog.github.io';
+
+const setCorsHeaders = (res) => {
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+};
+// --- FIM DA CONFIGURAÇÃO DE CORS ---
+
 /**
  * Handler principal da função serverless.
  * @param {object} req - O objeto de requisição (padrão Node.js).
  * @param {object} res - O objeto de resposta (padrão Node.js).
  */
 module.exports = async (req, res) => {
-  // 1. Medida de Segurança: Aceitar apenas requisições POST.
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Método não permitido. Use POST.' });
-  }
+    // Adiciona os cabeçalhos CORS a todas as respostas
+    setCorsHeaders(res);
 
-  try {
-    // 2. Extrair dados da requisição.
-    const { operationsData } = req.body;
-    if (!operationsData) {
-      return res.status(400).json({ error: 'Nenhum dado de operação fornecido.' });
+    // O navegador envia uma requisição "preflight" OPTIONS antes do POST para verificar a permissão
+    if (req.method === 'OPTIONS') {
+        return res.status(204).end();
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    // 1. Medida de Segurança: Aceitar apenas requisições POST.
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Método não permitido. Use POST.' });
+    }
 
-    // 3. Construir o Prompt detalhado e robusto para a IA.
-    const prompt = `
+    try {
+        // 2. Extrair dados da requisição.
+        const { operationsData } = req.body;
+        if (!operationsData) {
+            return res.status(400).json({ error: 'Nenhum dado de operação fornecido.' });
+        }
+
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+        // 3. Construir o Prompt detalhado e robusto para a IA.
+        const prompt = `
       Você é um coach de trading e analista de dados sênior. Sua tarefa é analisar os dados de operações de trade, que estão em formato CSV, e fornecer insights valiosos.
       Os campos do CSV são: symbol, startDate, result, fees, winLoss (1 para ganho, 0 para perda).
 
@@ -53,34 +71,28 @@ module.exports = async (req, res) => {
       ${operationsData}
     `;
 
-    // 4. Chamar a API da IA e processar a resposta.
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const rawText = response.text();
+        // 4. Chamar a API da IA e processar a resposta.
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const rawText = response.text();
 
-    // --- INÍCIO DA MODIFICAÇÃO CRÍTICA DE ROBUSTEZ ---
-    try {
-      // Tentamos fazer o parse do texto que a IA retornou.
-      const parsedJson = JSON.parse(rawText);
-      // Se funcionar, enviamos a resposta de sucesso.
-      res.status(200).json(parsedJson);
-    } catch (parseError) {
-      // Se o parse falhar, capturamos o erro aqui.
-      console.error("Erro de Parse JSON na resposta da API Gemini (analyze-trades):", parseError);
-      console.error("--- Resposta Bruta da IA que causou o erro ---");
-      console.error(rawText);
-      console.error("--------------------------------------------");
-      // Enviamos uma resposta de erro ESTRUTURADA para o front-end.
-      res.status(500).json({
-        error: "A resposta da IA não estava em um formato JSON válido.",
-        details: rawText // Enviamos o texto bruto para depuração no front-end.
-      });
+        // 5. Tratamento Robusto da Resposta
+        try {
+            const parsedJson = JSON.parse(rawText);
+            res.status(200).json(parsedJson);
+        } catch (parseError) {
+            console.error("Erro de Parse JSON na resposta da API Gemini (analyze-trades):", parseError);
+            console.error("--- Resposta Bruta da IA que causou o erro ---");
+            console.error(rawText);
+            console.error("--------------------------------------------");
+            res.status(500).json({
+                error: "A resposta da IA não estava em um formato JSON válido.",
+                details: rawText
+            });
+        }
+    } catch (error) {
+        // 6. Tratamento de Erros geral e robusto.
+        console.error("Erro geral na chamada da API Gemini (analyze-trades):", error);
+        res.status(500).json({ error: "Ocorreu um erro interno ao processar a análise da IA." });
     }
-    // --- FIM DA MODIFICAÇÃO CRÍTICA ---
-
-  } catch (error) {
-    // 6. Tratamento de Erros geral e robusto.
-    console.error("Erro geral na chamada da API Gemini (analyze-trades):", error);
-    res.status(500).json({ error: "Ocorreu um erro interno ao processar a análise da IA." });
-  }
 };
