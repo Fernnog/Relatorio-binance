@@ -6,7 +6,6 @@
  */
 
 // Importa o SDK oficial do Google Generative AI.
-// Em um ambiente de produção (Vercel, Netlify, etc.), instale com `npm install @google/generative-ai`.
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // A Chave de API NUNCA deve ser exposta no código.
@@ -48,7 +47,7 @@ module.exports = async (req, res) => {
       - "evidence": Uma frase curta que descreve os dados que suportam o insight (ex: "Dos seus trades lucrativos, 75% ocorreram em BTCUSDT.").
       - "recommendation": Uma recomendação acionável e prática para o trader (ex: "Considere focar mais em sua estratégia para BTCUSDT ou analisar por que ela funciona melhor neste ativo.").
 
-      Não inclua nenhuma outra explicação, texto introdutório ou formatação fora do array JSON.
+      NÃO inclua nenhuma explicação, texto introdutório, ou formatação de markdown como \`\`\`json. Sua resposta deve começar com '[' e terminar com ']'.
 
       Dados para análise:
       ${operationsData}
@@ -57,16 +56,31 @@ module.exports = async (req, res) => {
     // 4. Chamar a API da IA e processar a resposta.
     const result = await model.generateContent(prompt);
     const response = await result.response;
+    const rawText = response.text();
 
-    // Limpa a resposta da IA de possíveis formatações de markdown antes de fazer o parse.
-    const jsonText = response.text().replace(/```json|```/g, '').trim();
-
-    // 5. Enviar a resposta final para o front-end.
-    res.status(200).json(JSON.parse(jsonText));
+    // --- INÍCIO DA MODIFICAÇÃO CRÍTICA DE ROBUSTEZ ---
+    try {
+      // Tentamos fazer o parse do texto que a IA retornou.
+      const parsedJson = JSON.parse(rawText);
+      // Se funcionar, enviamos a resposta de sucesso.
+      res.status(200).json(parsedJson);
+    } catch (parseError) {
+      // Se o parse falhar, capturamos o erro aqui.
+      console.error("Erro de Parse JSON na resposta da API Gemini (analyze-trades):", parseError);
+      console.error("--- Resposta Bruta da IA que causou o erro ---");
+      console.error(rawText);
+      console.error("--------------------------------------------");
+      // Enviamos uma resposta de erro ESTRUTURADA para o front-end.
+      res.status(500).json({
+        error: "A resposta da IA não estava em um formato JSON válido.",
+        details: rawText // Enviamos o texto bruto para depuração no front-end.
+      });
+    }
+    // --- FIM DA MODIFICAÇÃO CRÍTICA ---
 
   } catch (error) {
-    // 6. Tratamento de Erros robusto.
-    console.error("Erro na chamada da API Gemini (analyze-trades):", error);
+    // 6. Tratamento de Erros geral e robusto.
+    console.error("Erro geral na chamada da API Gemini (analyze-trades):", error);
     res.status(500).json({ error: "Ocorreu um erro interno ao processar a análise da IA." });
   }
 };
