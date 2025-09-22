@@ -1,8 +1,8 @@
+// Substitua TODO o conteúdo de 'assets/js/api-client.js' por este código corrigido.
+
 /**
  * @file api-client.js
  * @description Módulo central para todas as comunicações com as APIs de back-end.
- * Abstrai a lógica do 'fetch' para que o resto da aplicação possa fazer chamadas
- * de forma limpa e padronizada.
  */
 
 // NOTA: A variável API_BASE_URL é definida em config.js e carregada no index.html
@@ -11,12 +11,16 @@
  * Envia os dados de operações para a análise inicial da IA e retorna os insights.
  * @param {string} operationsCsv - A string contendo os dados de trade em formato CSV.
  * @returns {Promise<Array<Object>>} Uma promessa que resolve para um array de objetos de insight.
- * @throws {Error} Lança um erro se a resposta da rede não for bem-sucedida.
  */
 async function getAIInsights(operationsCsv) {
   try {
-    // MODIFICAÇÃO: Adicionado API_BASE_URL ao início do caminho
-    const response = await fetch(`${API_BASE_URL}/api/analyze-trades`, {
+    // --- INÍCIO DA CORREÇÃO ---
+    // Remove uma possível barra no final da URL base para evitar a barra dupla.
+    const baseUrl = API_BASE_URL.replace(/\/$/, '');
+    const apiUrl = `${baseUrl}/api/analyze-trades`;
+    // --- FIM DA CORREÇÃO ---
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -25,7 +29,6 @@ async function getAIInsights(operationsCsv) {
     });
 
     if (!response.ok) {
-      // Melhoria: Tenta ler o erro como JSON, se falhar, usa o texto.
       let errorData;
       try {
         errorData = await response.json();
@@ -47,12 +50,16 @@ async function getAIInsights(operationsCsv) {
  * @param {string} question - A pergunta feita pelo usuário.
  * @param {string} operationsCsv - A string contendo o contexto dos dados de trade em CSV.
  * @returns {Promise<Object>} Uma promessa que resolve para um objeto contendo a chave 'answer'.
- * @throws {Error} Lança um erro se a resposta da rede não for bem-sucedida.
  */
 async function askAIChat(question, operationsCsv) {
   try {
-    // MODIFICAÇÃO: Adicionado API_BASE_URL ao início do caminho
-    const response = await fetch(`${API_BASE_URL}/api/chat-with-trades`, {
+    // --- INÍCIO DA CORREÇÃO ---
+    // Remove uma possível barra no final da URL base para evitar a barra dupla.
+    const baseUrl = API_BASE_URL.replace(/\/$/, '');
+    const apiUrl = `${baseUrl}/api/chat-with-trades`;
+    // --- FIM DA CORREÇÃO ---
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
