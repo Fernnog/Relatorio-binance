@@ -670,6 +670,7 @@ async function handleGenerateInsights() {
   const ctaDiv = document.getElementById('ia-call-to-action');
   const loadingDiv = document.getElementById('ia-loading');
   const resultsWrapper = document.getElementById('ia-results-wrapper');
+  const resetButton = document.getElementById('reset-btn');
 
   ctaDiv.style.display = 'none';
   loadingDiv.style.display = 'block';
@@ -682,14 +683,15 @@ async function handleGenerateInsights() {
     localStorage.setItem('aiInsights', JSON.stringify(insights));
     renderInsights(insights);
   } catch (error) {
-    resultsWrapper.innerHTML = `<p class="erro" style="display: block;">Falha ao gerar insights. (${error.message})</p>`;
+    const errorMessage = error.message.includes('not defined') 
+        ? 'Erro de configuração. O script da API não foi carregado corretamente.'
+        : error.message;
+    resultsWrapper.innerHTML = `<p class="erro" style="display: block;">Falha ao gerar insights. (${errorMessage})</p>`;
     ctaDiv.style.display = 'block'; // Permite ao usuário tentar novamente
-    
-    // ADIÇÃO ESTRATÉGICA: Garante que o botão de reset esteja visível após um erro.
-    document.getElementById('reset-btn').style.display = 'inline-block';
-    
   } finally {
+    // Este bloco é executado sempre, com sucesso ou erro, garantindo a consistência da UI.
     loadingDiv.style.display = 'none';
+    resetButton.style.display = 'inline-block'; // Garante que o botão de reset sempre reapareça.
   }
 }
 
