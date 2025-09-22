@@ -40,14 +40,31 @@ module.exports = async (req, res) => {
 
       Sua resposta DEVE ser um objeto JSON válido com uma única chave: "answer".
       O valor de "answer" deve ser uma string contendo a resposta à pergunta.
-      Não inclua nenhuma outra explicação ou formatação fora do objeto JSON.
+      NÃO inclua explicações ou formatação markdown. Sua resposta deve começar com '{' e terminar com '}'.
     `;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const jsonText = response.text().replace(/```json|```/g, '').trim();
+    const rawText = response.text();
 
-    res.status(200).json(JSON.parse(jsonText));
+    // --- INÍCIO DA MODIFICAÇÃO CRÍTICA DE ROBUSTEZ ---
+    try {
+      // Tentamos fazer o parse do texto que a IA retornou.
+      const parsedJson = JSON.parse(rawText);
+      // Se funcionar, enviamos a resposta de sucesso.
+      res.status(200).json(parsedJson);
+    } catch (parseError) {
+      // Se o parse falhar, capturamos o erro aqui.
+      console.error("Erro de Parse JSON na resposta da API Gemini (Chat):", parseError);
+      console.error("--- Resposta Bruta da IA que causou o erro ---");
+      console.error(rawText);
+      console.error("--------------------------------------------");
+      // Enviamos uma resposta de erro ESTRUTURADA para o front-end.
+      res.status(500).json({
+        answer: `Ocorreu um erro ao processar a resposta da IA. Resposta recebida: ${rawText}`
+      });
+    }
+    // --- FIM DA MODIFICAÇÃO CRÍTICA ---
     
   } catch (error) {
     console.error("Erro na API Gemini (chat-with-trades):", error);
