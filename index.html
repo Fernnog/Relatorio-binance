@@ -4,20 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Relatório de Performance de Trades (Binance)</title>
+  
+  <!-- Favicons e Metadados -->
   <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
-<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-<link rel="manifest" href="site.webmanifest">
-<link rel="mask-icon" href="safari-pinned-tab.svg" color="#1746a0">
-<meta name="msapplication-TileColor" content="#ffffff">
-<meta name="theme-color" content="#ffffff">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="mask-icon" href="safari-pinned-tab.svg" color="#1746a0">
+  <meta name="msapplication-TileColor" content="#ffffff">
+  <meta name="theme-color" content="#ffffff">
+  
+  <!-- Estilos CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css"/>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="container">
     <h1>Relatório de Performance de Trades</h1>
+    
+    <!-- Formulário Inicial de Upload -->
     <form id="trade-form">
       <div class="campo">
         <label for="trade-file">Upload da Planilha (.xls, .xlsx ou .csv):</label>
@@ -34,7 +40,7 @@
        <div class="campo">
         <label for="exclusoes-dates">Excluir Período/Datas:</label>
         <input type="text" id="exclusoes-dates" placeholder="Clique para selecionar as datas...">
-    </div>
+      </div>
       <button type="submit">Gerar Relatório</button>
       <button type="button" id="reset-btn" style="display: none;">Reiniciar Análise</button>
     </form>
@@ -44,77 +50,71 @@
       Analisando operações, por favor aguarde...
     </div>
 
-    <!-- Etapa de validação interativa -->
+    <!-- Etapa de Validação Interativa -->
     <div id="validacao-operacoes" class="relatorio" style="display: none;">
       <h3>Validação de Agrupamentos</h3>
       <p>Selecione as linhas para criar ou desagrupar operações. Use a tabela abaixo para refinar os grupos antes de gerar o relatório final.</p>
       
-      <!-- Bloco de ações com os novos botões -->
       <div id="validation-actions">
         <button id="create-group-btn" disabled>Criar Novo Grupo</button>
         <button id="ungroup-btn" disabled>Desagrupar Selecionados</button>
       </div>
-      <!-- Fim do bloco de ações -->
-
+      
       <div id="validation-table-container"></div>
-
-      <!-- Painel de Resumo da Seleção em tempo real -->
       <div id="selection-summary" class="selection-summary-panel" style="display: none;"></div>
-      <!-- Fim do painel -->
-
+      
       <button id="confirm-groups-btn">Confirmar Grupos e Gerar Relatório</button>
     </div>
-    <!-- Fim da etapa de validação -->
-
+    
+    <!-- Contêiner Principal do Relatório Final -->
     <div id="relatorio" class="relatorio">
-      <!-- O CONTEÚDO DO RELATÓRIO SERÁ INJETADO AQUI PELO JAVASCRIPT -->
+        <!-- O conteúdo do relatório (tabelas, gráficos) será injetado aqui pelo app.js -->
+        <!-- O código abaixo é a nova estrutura para a seção de IA, que será exibida dentro deste contêiner -->
+        
+        <div id="ia-insights-section" style="display: none;">
+            <h3 class="detalhes-title">Insights da Análise (com Gemini AI)</h3>
+            
+            <div id="ia-call-to-action">
+                <p>Use o poder da IA para descobrir padrões e receber recomendações personalizadas.</p>
+                <button id="generate-ia-insights-btn">✨ Gerar Análise Avançada com IA</button>
+            </div>
+            
+            <div id="ia-loading" class="loading-indicator" style="display: none;"></div>
+            
+            <div id="ia-results-wrapper">
+                <!-- Os cartões de insights da IA serão injetados aqui -->
+            </div>
       
-      <!-- ### INÍCIO DA NOVA SEÇÃO DE IA ### -->
-      <!-- Este bloco será adicionado dinamicamente junto com o relatório principal -->
-      <div id="ia-insights-section" style="display: none;">
-        <h3 class="detalhes-title">Insights da Análise (com Gemini AI)</h3>
-        
-        <!-- Botão para iniciar a análise -->
-        <div id="ia-call-to-action">
-          <p>Use o poder da IA para descobrir padrões e receber recomendações personalizadas.</p>
-          <button id="generate-ia-insights-btn">✨ Gerar Análise Avançada com IA</button>
+            <!-- Nova Seção de Chat -->
+            <div id="ia-chat-wrapper" style="display: none;">
+                <h4 class="chat-title">Converse com Seus Dados</h4>
+                <div id="chat-history">
+                    <!-- As mensagens do chat serão injetadas aqui -->
+                </div>
+                <form id="chat-form">
+                    <input type="text" id="chat-input" placeholder="Ex: Quantos trades eu fiz com BTCUSDT?" required autocomplete="off">
+                    <button type="submit">Enviar</button>
+                </form>
+            </div>
         </div>
-        
-        <!-- Indicador de carregamento da IA -->
-        <div id="ia-loading" class="loading-indicator" style="display: none;"></div>
-        
-        <!-- Contêiner para os resultados (cartões) -->
-        <div id="ia-results-wrapper"></div>
-  
-        <!-- Nova Seção de Chat Interativo -->
-        <div id="ia-chat-wrapper" style="display: none;">
-          <h4 class="chat-title">Converse com Seus Dados</h4>
-          <div id="chat-history"></div>
-          <form id="chat-form">
-            <input type="text" id="chat-input" placeholder="Ex: Quantos trades eu fiz com BTCUSDT?" required autocomplete="off">
-            <button type="submit">Enviar</button>
-          </form>
-        </div>
-      </div>
-      <!-- ### FIM DA NOVA SEÇÃO DE IA ### -->
-
     </div>
+    
+    <!-- Contêiner para Mensagens de Erro -->
     <div id="erro" class="erro"></div>
   </div>
-  
-  <!-- Bibliotecas Externas -->
+
+  <!-- Scripts JavaScript (Bibliotecas Externas e Lógica da Aplicação) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/litepicker.js"></script>
   
-  <!-- Scripts da Aplicação -->
-  <script src="trade-analyzer.js"></script>
-  
-  <!-- ### NOVO SCRIPT ADICIONADO ### -->
-  <!-- O api-client deve vir ANTES do app.js que o utiliza -->
+  <!-- ======================================================= -->
+  <!-- ✅ SCRIPT DE API CLIENT ADICIONADO NA ORDEM CORRETA ✅   -->
   <script src="assets/js/api-client.js"></script>
-
+  <!-- ======================================================= -->
+  
+  <script src="trade-analyzer.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
