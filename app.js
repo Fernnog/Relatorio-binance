@@ -678,13 +678,16 @@ async function handleGenerateInsights() {
 
   try {
     const csvData = getOperationsAsCsv();
-    // Assumimos que getAIInsights está disponível globalmente a partir de api-client.js
     const insights = await getAIInsights(csvData); 
     localStorage.setItem('aiInsights', JSON.stringify(insights));
     renderInsights(insights);
   } catch (error) {
     resultsWrapper.innerHTML = `<p class="erro" style="display: block;">Falha ao gerar insights. (${error.message})</p>`;
     ctaDiv.style.display = 'block'; // Permite ao usuário tentar novamente
+    
+    // ADIÇÃO ESTRATÉGICA: Garante que o botão de reset esteja visível após um erro.
+    document.getElementById('reset-btn').style.display = 'inline-block';
+    
   } finally {
     loadingDiv.style.display = 'none';
   }
@@ -740,7 +743,6 @@ function setupAIChat() {
 
     try {
       const csvData = getOperationsAsCsv();
-      // Assumimos que askAIChat está disponível globalmente a partir de api-client.js
       const result = await askAIChat(question, csvData);
       addMessageToHistory(result.answer, 'ai');
     } catch (error) {
