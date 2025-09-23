@@ -1,27 +1,9 @@
-// Substitua todo o conteúdo deste arquivo por este código.
-
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-const allowedOrigin = 'https://fernnog.github.io';
-
-// Função auxiliar para configurar os cabeçalhos CORS
-const setCorsHeaders = (res) => {
-    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-};
-
 module.exports = async (req, res) => {
-    // 1. Aplica os cabeçalhos CORS em todas as respostas
-    setCorsHeaders(res);
+    // A lógica de CORS foi removida daqui e agora é controlada pelo vercel.json
 
-    // 2. Responde imediatamente à requisição 'preflight' do navegador (método OPTIONS)
-    if (req.method === 'OPTIONS') {
-        return res.status(204).end();
-    }
-
-    // 3. Continua com a lógica original apenas para requisições POST
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Método não permitido. Use POST.' });
     }
