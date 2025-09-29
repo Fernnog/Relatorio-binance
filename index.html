@@ -21,7 +21,10 @@
 </head>
 <body>
   <div class="container">
-    <h1>Relatório de Performance de Trades</h1>
+    <div class="header-wrapper">
+      <h1>Relatório de Performance de Trades</h1>
+      <button type="button" id="reset-btn" style="display: none;">Reiniciar Análise</button>
+    </div>
     
     <!-- Formulário Inicial de Upload -->
     <form id="trade-form">
@@ -42,7 +45,6 @@
         <input type="text" id="exclusoes-dates" placeholder="Clique para selecionar as datas...">
       </div>
       <button type="submit">Gerar Relatório</button>
-      <button type="button" id="reset-btn" style="display: none;">Reiniciar Análise</button>
     </form>
 
     <!-- Indicador de Carregamento -->
