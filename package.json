@@ -1,12 +1,9 @@
 {
   "name": "trade-report-analyzer",
   "version": "1.0.0",
-  "description": "Analisador de performance de trades com insights de IA.",
+  "description": "Analisador de performance de trades para gerar relatórios detalhados a partir de planilhas.",
   "main": "index.html",
-  "scripts": {
-    "dev": "vercel dev",
-    "deploy": "vercel --prod"
-  },
+  "scripts": {},
   "author": "",
   "license": "ISC",
   "dependencies": {}
