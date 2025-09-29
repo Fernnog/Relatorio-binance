@@ -542,3 +542,28 @@ button.button--loading::after {
   font-size: 1.1em;
   border: 1px solid #ddd;
 }
+
+.header-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.7rem; /* Mantém o espaçamento original do h1 */
+}
+
+.header-wrapper h1 {
+  margin-bottom: 0; /* Remove a margem do h1, pois o wrapper agora a controla */
+}
+
+#reset-btn {
+  background: #c0392b; /* Cor mais apropriada para uma ação de "reset" */
+  margin-top: 0;
+  margin-left: 1em;
+  padding: .7em 1.5em;
+  font-size: 1em;
+  flex-shrink: 0; /* Impede que o botão encolha em telas menores */
+}
+
+#reset-btn:hover {
+  background: #a93226;
+  opacity: 1; /* Sobrescreve o hover genérico */
+}
