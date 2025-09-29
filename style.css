@@ -1,569 +1,84 @@
+/* PRIORIDADE 3: Variáveis Globais para consistência e fácil manutenção */
+:root {
+  --color-background: #f4f7f9;
+  --color-surface: #ffffff;
+  --color-text-primary: #1a202c;
+  --color-text-secondary: #4a5568;
+  --color-accent: #3182ce;
+  --color-accent-text: #ffffff;
+  
+  --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  
+  --spacing-sm: 0.5rem;  /* 8px */
+  --spacing-md: 1rem;    /* 16px */
+  --spacing-lg: 1.5rem;  /* 24px */
+  --spacing-xl: 2rem;    /* 32px */
+
+  --border-radius: 6px;
+  --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Estilos base refatorados para usar variáveis */
 body {
-  background: #f9fafe;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  color: #222;
+  margin: 0;
+  font-family: var(--font-family-sans);
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  line-height: 1.6;
 }
 
 .container {
-  max-width: 600px;
-  background: #fff;
-  margin: 3rem auto;
-  padding: 2em 2em 2.5em 2em;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(100,120,200,0.08);
+  max-width: 960px;
+  margin: var(--spacing-xl) auto;
+  padding: 0 var(--spacing-md);
 }
 
 h1 {
-  color: #1746a0;
-  margin-bottom: 1.7rem;
-  font-size: 2rem;
+  font-size: 2.25rem;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
 }
 
-.campo {
-  margin-bottom: 1.1rem;
+.panel {
+  background-color: var(--color-surface);
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  margin-bottom: var(--spacing-lg);
 }
 
-label {
-  display: block;
-  margin-bottom: 0.3em;
-  font-weight: bold;
-}
+/* --- INÍCIO DAS NOVAS REGRAS --- */
 
-input[type="file"],
-input[type="number"],
-input[type="text"] {
-  padding: .7em .8em;
-  width: 90%;
-  background: #f2f5fb;
-  border: 1px solid #e3e6ef;
-  border-radius: 6px;
-}
-
-button {
-  padding: .9em 2.1em;
-  margin-top: .7em;
-  border: none;
-  color: #fff;
-  background: linear-gradient(90deg, #1746a0 80%, #21e6c1 100%);
-  border-radius: 7px;
-  font-size: 1.1em;
-  cursor: pointer;
-  font-weight: bold;
-  letter-spacing: .04em;
-}
-
-button:hover {
-  opacity: 0.87;
-}
-
-.relatorio {
-  margin-top: 2.2em;
-  background: #f5f7fa;
-  padding: 1.7em 2em;
-  border-radius: 8px;
-  box-shadow: 0 1px 6px #cde1ff33;
-  font-size: 1.09em;
-}
-
-.relatorio h2, .relatorio h3 {
-  color: #1746a0;
-  font-size: 1.3em;
-  margin-bottom: 1em;
-}
-
-.erro {
-  color: #c0392b;
-  margin-top: 1.2em;
-  display: none;
-}
-
-.report-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 18px 0 22px 0;
-  box-shadow: 0 2px 16px #1746a016;
-  background: #f7fafb;
-  font-size: 1.08em;
-}
-.report-table th, .report-table td {
-  padding: 0.7em 0.9em;
-  border: 1px solid #e6e9ee;
-  text-align: left;
-}
-.report-table th {
-  background: #1746a0;
-  color: #fff;
-}
-.report-table .total-row td {
-  background: #e4ffe8;
-  color: #19a557;
-}
-.report-table .result-row td {
-  background: #eef1ff;
-  color: #1746a0;
-  font-weight: bold;
-}
-#share-btn {
-  display: block;
-  margin: 25px auto 2px auto;
-  background: linear-gradient(90deg, #21e6c1 70%, #1746a0 100%);
-  color: #fff;
-  border: none;
-  padding: 12px 27px;
-  font-size: 1.1em;
-  border-radius: 7px;
-  cursor: pointer;
-  font-weight: bold;
-  letter-spacing: .03em;
-  transition: 0.15s;
-}
-#share-btn:hover { opacity:0.86; }
-
-/* Responsividade extra */
-@media (max-width: 700px) {
-  .container {
-    max-width: 96vw;
-    padding: 1.1em 0.6em 1.7em 0.6em;
-  }
-  .relatorio, .erro {
-    padding: 1.2em 0.7em;
-    font-size: 1em;
-  }
-  .report-table th, .report-table td {
-    padding: 0.46em 0.42em;
-    font-size: 0.97em;
-  }
-  
-  input[type="file"],
-  input[type="number"],
-  input[type="text"] {
-    width: 100%; 
-    box-sizing: border-box; 
-  }
-
-  button {
-    width: 100%;
-    margin-bottom: 0.5em; 
-  }
-
-  #reset-btn {
-    margin-left: 0;
-  }
-
-  .report-controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
-}
-
-/* Estilo para o indicador de loading */
-.loading-indicator {
-  text-align: center;
-  padding: 2em;
-  font-size: 1.1em;
-  color: #1746a0;
-  font-weight: bold;
-}
-
-/* Título da seção de detalhes */
-.detalhes-title {
-  margin-top: 2.5em;
-  color: #1746a0;
-  border-top: 1px solid #e0e4eb;
-  padding-top: 1.5em;
-  font-size: 1.2em;
-}
-
-/* Ajustes na tabela de detalhes */
-.details-table {
-  margin-top: 1em;
-}
-
-/* Estilos para as linhas de lucro/prejuízo na tabela de detalhes */
-.details-table .win-row td {
-  background-color: #e4ffe8;
-  color: #19a557;
-}
-
-.details-table .loss-row td {
-  background-color: #fff1f0;
-  color: #c0392b;
-}
-
-.report-table .loss-total-row td {
-  background: #fff1f0;
-  color: #c0392b;
-}
-
-#reset-btn {
-  background: #6c757d;
-  margin-left: 0.5em;
-}
-
-#capital-chart-container {
-  margin-top: 2.5em;
-  padding: 1.5em 1em;
-  background: #fdfdff;
-  border-radius: 8px;
-  box-shadow: 0 2px 16px #1746a016;
-}
-
-/* Estilos para os novos controles de filtro do relatório */
-.report-controls {
-  margin-bottom: 1.5em;
-  padding: 1em;
-  background: #f0f3f8;
-  border-radius: 6px;
+/* PRIORIDADE 1: Estilização do novo container de ações */
+.actions-container {
   display: flex;
-  align-items: center;
-  gap: 1em;
+  flex-wrap: wrap; /* Garante que os botões se ajustem em telas menores */
+  gap: var(--spacing-md); /* Espaço entre os botões usando variável */
+  margin-bottom: var(--spacing-xl); /* Espaço abaixo dos botões usando variável */
 }
 
-.report-controls label {
-  font-weight: normal;
-  margin-bottom: 0;
-}
-
-.report-controls select {
-  padding: .5em;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
-
-/* Estilo para as novas linhas de métricas */
-.report-table .metric-row td {
-  background-color: #e6f7ff;
-  color: #0d47a1;
-  font-weight: bold;
-}
-
-/* Estilos para o estado de carregamento do botão */
-button.button--loading {
-  position: relative;
-  cursor: wait;
-  color: transparent !important; 
-  opacity: 0.7;
-}
-
-button.button--loading::after {
-  content: '';
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  top: 50%;
-  left: 50%;
-  margin-top: -10px;
-  margin-left: -10px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Estilo para o ícone de informação */
-.info-icon {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  margin-left: 8px;
-  background-color: #6c757d;
-  color: white;
-  border-radius: 50%;
-  text-align: center;
-  font-size: 12px;
-  line-height: 16px;
-  cursor: help;
-  font-style: italic;
-  font-family: serif;
-  position: relative; 
-}
-
-/* Estilo para a caixa de tooltip */
-.tooltip {
-  position: absolute;
-  bottom: 125%; 
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #333;
-  color: #fff;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 0.9em;
-  width: 220px;
-  z-index: 10;
-  visibility: hidden;
-  opacity: 0;
-  transition: opacity 0.2s;
-  text-align: left;
-  font-style: normal;
-  font-family: 'Segoe UI', Arial, sans-serif;
-}
-
-.tooltip::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    margin-left: -5px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: #333 transparent transparent transparent;
-}
-
-.info-icon:hover .tooltip {
-    visibility: visible;
-    opacity: 1;
-}
-
-/* Estilos para indicadores visuais de performance */
-.report-table .positive-result td,
-.details-table .win-row .positive-cell {
-  background-color: #e4ffe8 !important;
-  color: #19a557 !important;
-  font-weight: bold;
-}
-
-.report-table .negative-result td,
-.details-table .loss-row .negative-cell {
-  background-color: #fff1f0 !important;
-  color: #c0392b !important;
-  font-weight: bold;
-}
-
-.positive-result td:first-child::after,
-.positive-cell::after {
-  content: ' ▲';
-  display: inline-block;
-  margin-left: 8px;
-}
-
-.negative-result td:first-child::after,
-.negative-cell::after {
-  content: ' ▼';
-  display: inline-block;
-  margin-left: 8px;
-}
-
-/* Estilos para tabela de detalhes ordenável */
-.details-table th.sortable-header {
+/* Estilo base para os botões e implementação da PRIORIDADE 2 */
+.actions-container button {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-accent-text);
+  background-color: var(--color-accent);
+  border: none;
+  border-radius: var(--border-radius);
   cursor: pointer;
-  position: relative;
-  user-select: none;
+  transition: opacity 0.2s ease, transform 0.1s ease; /* Transição suave */
 }
 
-.details-table th.sortable-header:hover {
-  background-color: #1a53c0;
+/* PRIORIDADE 2: Feedback visual para o usuário (Hover) */
+.actions-container button:hover {
+  opacity: 0.85; /* Levemente mais transparente para indicar interatividade */
 }
 
-.details-table th.sortable-header::after {
-  content: ' ';
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  margin-top: -8px;
-  border: 5px solid transparent;
-  opacity: 0.3;
-}
-
-.details-table th.sortable-header.asc::after {
-  border-bottom-color: #fff;
+/* PRIORIDADE 2: Feedback visual para o usuário (Active/Click) */
+.actions-container button:active {
+  transform: scale(0.98); /* Efeito de "pressionado" */
   opacity: 1;
 }
 
-.details-table th.sortable-header.desc::after {
-  border-top-color: #fff;
-  opacity: 1;
-}
-
-/* --- INÍCIO DOS ESTILOS PARA A TELA DE VALIDAÇÃO --- */
-
-#validation-table-container {
-  max-height: 400px;
-  overflow-y: auto;
-  margin-bottom: 1em; /* Ajustado */
-}
-
-.validation-table {
-  font-size: 0.9em;
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.validation-table th, .validation-table td {
-  padding: 0.5em;
-  border: 1px solid #ddd;
-  text-align: left;
-}
-
-.validation-table th {
-  background-color: #f2f2f2;
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-
-/* Cores para os grupos */
-.group-color-1 { background-color: #e0f7fa; } /* Cyan */
-.group-color-2 { background-color: #e8f5e9; } /* Green */
-.group-color-3 { background-color: #fff9c4; } /* Yellow */
-.group-color-4 { background-color: #fce4ec; } /* Pink */
-.group-color-5 { background-color: #f3e5f5; } /* Purple */
-.group-color-6 { background-color: #ede7f6; } /* Deep Purple */
-
-.unmatched-row {
-  background-color: #fafafa;
-  color: #757575;
-}
-
-/* Estilos para validação interativa */
-
-#validation-actions {
-  margin-bottom: 1em;
-  padding-bottom: 1em;
-  border-bottom: 1px solid #e0e4eb;
-  display: flex;
-  gap: 10px;
-}
-
-#validation-actions button {
-  background: #1746a0; /* Botão primário */
-  font-size: 0.9em;
-  padding: .7em 1.5em;
-  margin-top: 0;
-}
-
-#validation-actions #ungroup-btn {
-  background: #6c757d; /* Botão secundário */
-}
-
-#validation-actions button:disabled {
-  background: #a0a5ab;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.validation-table tr {
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.validation-table tr.selected {
-  outline: 2px solid #1746a0;
-  outline-offset: -2px;
-}
-
-.validation-table .select-col {
-  width: 40px;
-  text-align: center;
-}
-
-/* Painel de Resumo da Seleção */
-.selection-summary-panel {
-  margin: 1.5em 0;
-  padding: 1em;
-  background: #f0f3f8;
-  border-radius: 6px;
-  border: 1px solid #e0e4eb;
-  font-size: 0.95em;
-  transition: opacity 0.3s ease;
-}
-
-.selection-summary-panel h4 {
-  margin-top: 0;
-  margin-bottom: 0.8em;
-  color: #1746a0;
-}
-
-.summary-line {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.3em;
-  padding: 0.2em 0;
-}
-.summary-line span:first-child {
-  font-weight: bold;
-}
-.summary-line.valid {
-  color: #19a557;
-  font-weight: bold;
-}
-.summary-line.invalid {
-  color: #c0392b;
-  font-weight: bold;
-}
-
-/* --- FIM DOS ESTILOS DE VALIDAÇÃO --- */
-
-/* NOVOS ESTILOS ADICIONADOS */
-
-#share-chart-btn {
-  display: block;
-  margin: 15px auto 2px auto;
-  background: linear-gradient(90deg, #1abc9c 70%, #1746a0 100%);
-  color: #fff;
-  border: none;
-  padding: 10px 25px;
-  font-size: 1.0em;
-  border-radius: 7px;
-  cursor: pointer;
-  font-weight: bold;
-  letter-spacing: .03em;
-  transition: 0.15s;
-}
-
-#share-chart-btn:hover { opacity:0.86; }
-
-#export-csv-btn {
-  display: block;
-  margin: 10px auto 2px auto;
-  background: linear-gradient(90deg, #27ae60 70%, #2c3e50 100%);
-  color: #fff;
-  border: none;
-  padding: 12px 27px;
-  font-size: 1.1em;
-  border-radius: 7px;
-  cursor: pointer;
-  font-weight: bold;
-}
-#export-csv-btn:hover { opacity:0.86; }
-
-.validation-section-header {
-  background-color: #eef1ff;
-  color: #1746a0;
-  font-weight: bold;
-  padding: 8px;
-  text-align: center;
-  font-size: 1.1em;
-  border: 1px solid #ddd;
-}
-
-.header-wrapper {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.7rem; /* Mantém o espaçamento original do h1 */
-}
-
-.header-wrapper h1 {
-  margin-bottom: 0; /* Remove a margem do h1, pois o wrapper agora a controla */
-}
-
-#reset-btn {
-  background: #c0392b; /* Cor mais apropriada para uma ação de "reset" */
-  margin-top: 0;
-  margin-left: 1em;
-  padding: .7em 1.5em;
-  font-size: 1em;
-  flex-shrink: 0; /* Impede que o botão encolha em telas menores */
-}
-
-#reset-btn:hover {
-  background: #a93226;
-  opacity: 1; /* Sobrescreve o hover genérico */
-}
+/* --- FIM DAS NOVAS REGRAS --- */
