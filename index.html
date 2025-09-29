@@ -1,36 +1,89 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relatório de Performance</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatório de Performance de Trades (Binance)</title>
+  
+  <!-- Favicons e Metadados -->
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="mask-icon" href="safari-pinned-tab.svg" color="#1746a0">
+  <meta name="msapplication-TileColor" content="#ffffff">
+  <meta name="theme-color" content="#ffffff">
+  
+  <!-- Estilos CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css"/>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="container">
+    <div class="header-wrapper">
+      <h1>Relatório de Performance de Trades</h1>
+      <button type="button" id="reset-btn" style="display: none;">Reiniciar Análise</button>
+    </div>
+    
+    <!-- Formulário Inicial de Upload -->
+    <form id="trade-form">
+      <div class="campo">
+        <label for="trade-file">Upload da Planilha (.xls, .xlsx ou .csv):</label>
+        <input type="file" id="trade-file" accept=".csv, .xls, .xlsx" required>
+      </div>
+      <div class="campo">
+        <label for="capital-inicial">Capital Inicial (USDT):</label>
+        <input type="number" id="capital-inicial" min="0" step="0.01" required>
+      </div>
+      <div class="campo">
+        <label for="exclusoes-symbols">Excluir Símbolos (separados por vírgula):</label>
+        <input type="text" id="exclusoes-symbols" placeholder="Ex: BTCUSDT, ETHUSDT">
+      </div>
+       <div class="campo">
+        <label for="exclusoes-dates">Excluir Período/Datas:</label>
+        <input type="text" id="exclusoes-dates" placeholder="Clique para selecionar as datas...">
+      </div>
+      <button type="submit">Gerar Relatório</button>
+    </form>
 
-    <div class="container">
-        <h1>Relatório de Performance de 3</h1>
-
-        <!-- PRIORIDADE 1: Novo container para os botões de ação -->
-        <div class="actions-container">
-            <!-- Os botões que antes estavam em outro local, agora estão aqui -->
-            <button id="reset-btn">Reiniciar Análise</button>
-            <button id="export-btn">Exportar para prompt no formato MD</button>
-        </div>
-
-        <!-- O restante do seu conteúdo permanece inalterado -->
-        <main>
-            <div class="panel">
-                <h2>Painel de Resultados 1</h2>
-                <p>Conteúdo do relatório aparece aqui...</p>
-            </div>
-            <div class="panel">
-                <h2>Painel de Resultados 2</h2>
-                <p>Mais conteúdo do relatório...</p>
-            </div>
-        </main>
+    <!-- Indicador de Carregamento -->
+    <div id="loading" class="loading-indicator" style="display: none;">
+      Analisando operações, por favor aguarde...
     </div>
 
-    <script src="script.js"></script>
+    <!-- Etapa de Validação Interativa -->
+    <div id="validacao-operacoes" class="relatorio" style="display: none;">
+      <h3>Validação de Agrupamentos</h3>
+      <p>Selecione as linhas para criar ou desagrupar operações. Use a tabela abaixo para refinar os grupos antes de gerar o relatório final.</p>
+      
+      <div id="validation-actions">
+        <button id="create-group-btn" disabled>Criar Novo Grupo</button>
+        <button id="ungroup-btn" disabled>Desagrupar Selecionados</button>
+      </div>
+      
+      <div id="validation-table-container"></div>
+      <div id="selection-summary" class="selection-summary-panel" style="display: none;"></div>
+      
+      <button id="confirm-groups-btn">Confirmar Grupos e Gerar Relatório</button>
+    </div>
+    
+    <!-- Contêiner Principal do Relatório Final -->
+    <div id="relatorio" class="relatorio">
+        <!-- O conteúdo do relatório (tabelas, gráficos) será injetado aqui pelo app.js -->
+    </div>
+    
+    <!-- Contêiner para Mensagens de Erro -->
+    <div id="erro" class="erro"></div>
+  </div>
+
+  <!-- Scripts JavaScript (Bibliotecas Externas e Lógica da Aplicação) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/litepicker.js"></script>
+  
+  <script src="trade-analyzer.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
