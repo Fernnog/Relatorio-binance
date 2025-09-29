@@ -1,11 +1,10 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Relatório de Performance de Trades (Binance)</title>
-
+  
   <!-- Favicons e Metadados -->
   <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -15,16 +14,16 @@
   <link rel="mask-icon" href="safari-pinned-tab.svg" color="#1746a0">
   <meta name="msapplication-TileColor" content="#ffffff">
   <meta name="theme-color" content="#ffffff">
-
-  <!-- Estilos -->
+  
+  <!-- Estilos CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css"/>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="container">
     <h1>Relatório de Performance de Trades</h1>
-
-    <!-- Formulário de upload -->
+    
+    <!-- Formulário Inicial de Upload -->
     <form id="trade-form">
       <div class="campo">
         <label for="trade-file">Upload da Planilha (.xls, .xlsx ou .csv):</label>
@@ -38,77 +37,51 @@
         <label for="exclusoes-symbols">Excluir Símbolos (separados por vírgula):</label>
         <input type="text" id="exclusoes-symbols" placeholder="Ex: BTCUSDT, ETHUSDT">
       </div>
-      <div class="campo">
+       <div class="campo">
         <label for="exclusoes-dates">Excluir Período/Datas:</label>
         <input type="text" id="exclusoes-dates" placeholder="Clique para selecionar as datas...">
       </div>
       <button type="submit">Gerar Relatório</button>
-      <button type="button" id="reset-btn" style="display:none;">Reiniciar Análise</button>
+      <button type="button" id="reset-btn" style="display: none;">Reiniciar Análise</button>
     </form>
 
-    <!-- Loading -->
-    <div id="loading" class="loading-indicator" style="display:none;">
+    <!-- Indicador de Carregamento -->
+    <div id="loading" class="loading-indicator" style="display: none;">
       Analisando operações, por favor aguarde...
     </div>
 
-    <!-- Validação -->
-    <div id="validacao-operacoes" class="relatorio" style="display:none;">
+    <!-- Etapa de Validação Interativa -->
+    <div id="validacao-operacoes" class="relatorio" style="display: none;">
       <h3>Validação de Agrupamentos</h3>
       <p>Selecione as linhas para criar ou desagrupar operações. Use a tabela abaixo para refinar os grupos antes de gerar o relatório final.</p>
-
+      
       <div id="validation-actions">
         <button id="create-group-btn" disabled>Criar Novo Grupo</button>
         <button id="ungroup-btn" disabled>Desagrupar Selecionados</button>
       </div>
-
+      
       <div id="validation-table-container"></div>
-      <div id="selection-summary" class="selection-summary-panel" style="display:none;"></div>
-
+      <div id="selection-summary" class="selection-summary-panel" style="display: none;"></div>
+      
       <button id="confirm-groups-btn">Confirmar Grupos e Gerar Relatório</button>
     </div>
-
-    <!-- Relatório final -->
+    
+    <!-- Contêiner Principal do Relatório Final -->
     <div id="relatorio" class="relatorio">
-      <!-- conteúdo injetado dinamicamente -->
-
-      <!-- Seção de Insights (agora local) -->
-      <div id="ia-insights-section" style="display:none;">
-        <h3 class="detalhes-title">Insights da Análise (Local)</h3>
-
-        <div id="ia-call-to-action">
-          <p>Descubra padrões nos seus trades sem sair do navegador.</p>
-          <button id="generate-local-insights-btn">💡 Gerar Insights Avançados</button>
-          <a id="download-md-btn" style="display:none;">⬇️ Baixar Insights (.md)</a>
-        </div>
-
-        <div id="ia-loading" class="loading-indicator" style="display:none;"></div>
-        <div id="ia-results-wrapper"></div>
-
-        <!-- Chat (permanece) -->
-        <div id="ia-chat-wrapper" style="display:none;">
-          <h4 class="chat-title">Converse com Seus Dados</h4>
-          <div id="chat-history"></div>
-          <form id="chat-form">
-            <input type="text" id="chat-input" placeholder="Ex: Quantos trades eu fiz com BTCUSDT?" required autocomplete="off">
-            <button type="submit">Enviar</button>
-          </form>
-        </div>
-      </div>
+        <!-- O conteúdo do relatório (tabelas, gráficos) será injetado aqui pelo app.js -->
     </div>
-
+    
+    <!-- Contêiner para Mensagens de Erro -->
     <div id="erro" class="erro"></div>
   </div>
 
-  <!-- Bibliotecas -->
+  <!-- Scripts JavaScript (Bibliotecas Externas e Lógica da Aplicação) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/litepicker.js"></script>
-
-  <!-- App -->
-  <script src="config.js"></script>
-  <script type="module" src="assets/js/insight-generator.js"></script>
-  <script type="module" src="assets/js/api-client.js"></script>
-  <script type="module" src="app.js"></script>
+  
+  <script src="trade-analyzer.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
