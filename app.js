@@ -155,7 +155,7 @@ function updateReportView(r) {
         </tr>
       </table>
       <button id="share-btn">Compartilhar como imagem</button>
-      <button id="export-csv-btn">Exportar Dados (CSV)</button>
+      <button id="export-md-btn">Exportar p/ Prompt (MD)</button>
     </div>
     <div id="capital-chart-container"></div>
     <div id="operacoes-detalhadas"></div>
@@ -169,10 +169,10 @@ function updateReportView(r) {
   shareButton.onclick = function() {
     const summaryElement = document.getElementById('report-summary-wrapper');
     shareButton.style.display = 'none';
-    document.getElementById('export-csv-btn').style.display = 'none'; // Esconde o botão de exportar também
+    document.getElementById('export-md-btn').style.display = 'none'; // Esconde o botão de exportar também
     html2canvas(summaryElement).then(function(canvas) {
       shareButton.style.display = 'block';
-      document.getElementById('export-csv-btn').style.display = 'block'; // Mostra novamente
+      document.getElementById('export-md-btn').style.display = 'block'; // Mostra novamente
       let img = canvas.toDataURL('image/png');
       let w = window.open('');
       w.document.write('<img src="' + img + '" style="max-width:100%;">');
@@ -193,41 +193,53 @@ function updateReportView(r) {
       });
   }
 
-  document.getElementById('export-csv-btn').addEventListener('click', function() {
-    if (!fullReportData || !fullReportData.operacoes || fullReportData.operacoes.length === 0) {
+  document.getElementById('export-md-btn').addEventListener('click', function() {
+    if (!fullReportData || !fullReportData.operacoes) {
         alert('Não há dados de operações para exportar.');
         return;
     }
 
-    const header = "Symbol,StartDate,EndDate,Result_USDT,Fees_USDT,TotalQty,Entry_Fills,Exit_Fills\n";
+    const capitalInicial = Number(document.getElementById("capital-inicial").value);
+    const capitalFinal = fullReportData.capitalEvolution[fullReportData.capitalEvolution.length - 1].capital;
+
+    let mdContent = `# Análise de Performance de Trades\n\n`;
+    mdContent += `## Resumo Geral da Performance\n\n`;
+    mdContent += `| Métrica | Valor |\n`;
+    mdContent += `|---|---|\n`;
+    mdContent += `| Capital Inicial | ${capitalInicial.toFixed(2)} USDT |\n`;
+    mdContent += `| Capital Final | ${capitalFinal.toFixed(2)} USDT |\n`;
+    mdContent += `| Resultado Líquido Final | ${r.liquido} USDT |\n`;
+    mdContent += `| Retorno sobre Capital | ${r.retorno}% |\n`;
+    mdContent += `| Total de Operações | ${r.total} |\n`;
+    mdContent += `| Operações Vencedoras | ${r.wins} |\n`;
+    mdContent += `| Operações Perdedoras | ${r.losses} |\n`;
+    mdContent += `| Operações Neutras | ${r.neutros} |\n`;
+    mdContent += `| Taxa de Acerto | ${r.taxaAcerto}% |\n`;
+    mdContent += `| Fator de Lucro | ${r.fatorLucro} |\n`;
+    mdContent += `| Payoff Ratio | ${r.payoffRatio} |\n`;
+    mdContent += `| Drawdown Máximo | ${r.maxDrawdown}% |\n`;
+    mdContent += `| Total de Taxas | ${r.fees} USDT |\n\n`;
+
+    mdContent += `## Detalhamento de Todas as Operações\n\n`;
+    mdContent += `| # | Símbolo | Data Entrada | Data Saída | Resultado (USDT) | Taxas (USDT) | Qtd. Total | Nº Compras | Nº Vendas |\n`;
+    mdContent += `|---|---|---|---|---:|---:|---:|---:|---:|\n`;
     
-    const rows = fullReportData.operacoes.map(op => {
-        const symbol = op.symbol;
-        const startDate = new Date(op.entrada[0].date).toISOString();
-        const endDate = new Date(op.saida[op.saida.length - 1].date).toISOString();
-        const result = op.resultado.toFixed(4);
-        const fees = op.fees.toFixed(4);
-        const totalQty = op.totalQty;
-        const entryFills = op.entrada.length;
-        const exitFills = op.saida.length;
+    fullReportData.operacoes.forEach((op, index) => {
+        const startDate = new Date(op.entrada[0].date).toLocaleString('pt-BR');
+        const endDate = new Date(op.saida[op.saida.length - 1].date).toLocaleString('pt-BR');
+        mdContent += `| ${index + 1} | ${op.symbol} | ${startDate} | ${endDate} | ${op.resultado.toFixed(2)} | ${op.fees.toFixed(2)} | ${op.totalQty.toFixed(8)} | ${op.entrada.length} | ${op.saida.length} |\n`;
+    });
 
-        // Escapa vírgulas no símbolo, se houver, envolvendo em aspas
-        return `"${symbol}",${startDate},${endDate},${result},${fees},${totalQty},${entryFills},${exitFills}`;
-    }).join('\n');
-
-    const csvContent = header + rows;
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([mdContent], { type: 'text/markdown;charset=utf-8;' });
     const link = document.createElement("a");
     
     if (link.download !== undefined) {
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", "relatorio_operacoes.csv");
+        link.setAttribute("download", "analise_trades.md");
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
-
         link.click();
-        
         document.body.removeChild(link);
     }
   });
