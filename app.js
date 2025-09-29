@@ -154,25 +154,43 @@ function updateReportView(r) {
             <td><b>${r.maxDrawdown}%</b></td>
         </tr>
       </table>
-      <button id="share-btn">Compartilhar como imagem</button>
-      <button id="export-md-btn">Exportar p/ Prompt (MD)</button>
     </div>
     <div id="capital-chart-container"></div>
     <div id="operacoes-detalhadas"></div>
   `;
 
+    // --- LÓGICA DE BOTÕES DE AÇÃO ---
+    const actionsContainer = document.getElementById('global-actions-container');
+    const resetButton = document.getElementById('reset-btn');
+    actionsContainer.innerHTML = ''; // Limpa botões antigos (exceto o de reset que será readicionado)
+    actionsContainer.appendChild(resetButton);
+
+    const shareButton = document.createElement('button');
+    shareButton.id = 'share-btn';
+    shareButton.textContent = 'Compartilhar Resumo (Imagem)';
+    
+    const exportMdButton = document.createElement('button');
+    exportMdButton.id = 'export-md-btn';
+    exportMdButton.textContent = 'Exportar p/ Prompt (MD)';
+
+    actionsContainer.appendChild(shareButton);
+    actionsContainer.appendChild(exportMdButton);
+
+    actionsContainer.style.display = 'flex';
+    resetButton.style.display = 'inline-block';
+    
+    // --- FIM DA LÓGICA DE BOTÕES ---
+
   renderCapitalChart(r.capitalEvolution);
   renderOperacoesDetalhadas(r.operacoes);
-  document.getElementById('reset-btn').style.display = 'inline-block';
-
-  const shareButton = document.getElementById('share-btn');
+  
   shareButton.onclick = function() {
     const summaryElement = document.getElementById('report-summary-wrapper');
     shareButton.style.display = 'none';
-    document.getElementById('export-md-btn').style.display = 'none'; // Esconde o botão de exportar também
+    exportMdButton.style.display = 'none'; // Esconde o botão de exportar também
     html2canvas(summaryElement).then(function(canvas) {
       shareButton.style.display = 'block';
-      document.getElementById('export-md-btn').style.display = 'block'; // Mostra novamente
+      exportMdButton.style.display = 'block'; // Mostra novamente
       let img = canvas.toDataURL('image/png');
       let w = window.open('');
       w.document.write('<img src="' + img + '" style="max-width:100%;">');
@@ -193,7 +211,7 @@ function updateReportView(r) {
       });
   }
 
-  document.getElementById('export-md-btn').addEventListener('click', function() {
+  exportMdButton.addEventListener('click', function() {
     if (!fullReportData || !fullReportData.operacoes) {
         alert('Não há dados de operações para exportar.');
         return;
@@ -202,32 +220,33 @@ function updateReportView(r) {
     const capitalInicial = Number(document.getElementById("capital-inicial").value);
     const capitalFinal = fullReportData.capitalEvolution[fullReportData.capitalEvolution.length - 1].capital;
 
-    let mdContent = `# Análise de Performance de Trades\n\n`;
-    mdContent += `## Resumo Geral da Performance\n\n`;
+    let mdContent = `# 📊 Análise de Performance de Trades\n\n`;
+    mdContent += `## 📝 Resumo Geral da Performance\n\n`;
     mdContent += `| Métrica | Valor |\n`;
     mdContent += `|---|---|\n`;
     mdContent += `| Capital Inicial | ${capitalInicial.toFixed(2)} USDT |\n`;
     mdContent += `| Capital Final | ${capitalFinal.toFixed(2)} USDT |\n`;
-    mdContent += `| Resultado Líquido Final | ${r.liquido} USDT |\n`;
+    mdContent += `| **Resultado Líquido Final** | **${r.liquido} USDT** |\n`;
     mdContent += `| Retorno sobre Capital | ${r.retorno}% |\n`;
     mdContent += `| Total de Operações | ${r.total} |\n`;
-    mdContent += `| Operações Vencedoras | ${r.wins} |\n`;
-    mdContent += `| Operações Perdedoras | ${r.losses} |\n`;
-    mdContent += `| Operações Neutras | ${r.neutros} |\n`;
+    mdContent += `| 📈 Operações Vencedoras | ${r.wins} |\n`;
+    mdContent += `| 📉 Operações Perdedoras | ${r.losses} |\n`;
+    mdContent += `| ➖ Operações Neutras | ${r.neutros} |\n`;
     mdContent += `| Taxa de Acerto | ${r.taxaAcerto}% |\n`;
     mdContent += `| Fator de Lucro | ${r.fatorLucro} |\n`;
     mdContent += `| Payoff Ratio | ${r.payoffRatio} |\n`;
     mdContent += `| Drawdown Máximo | ${r.maxDrawdown}% |\n`;
     mdContent += `| Total de Taxas | ${r.fees} USDT |\n\n`;
 
-    mdContent += `## Detalhamento de Todas as Operações\n\n`;
-    mdContent += `| # | Símbolo | Data Entrada | Data Saída | Resultado (USDT) | Taxas (USDT) | Qtd. Total | Nº Compras | Nº Vendas |\n`;
+    mdContent += `## 📋 Detalhamento de Todas as Operações\n\n`;
+    mdContent += `| # | 🏷️ Símbolo | ➡️ Data Entrada | ⬅️ Data Saída | 💰 Resultado (USDT) | 💸 Taxas (USDT) | Qtd. Total | Nº Compras | Nº Vendas |\n`;
     mdContent += `|---|---|---|---|---:|---:|---:|---:|---:|\n`;
     
     fullReportData.operacoes.forEach((op, index) => {
         const startDate = new Date(op.entrada[0].date).toLocaleString('pt-BR');
         const endDate = new Date(op.saida[op.saida.length - 1].date).toLocaleString('pt-BR');
-        mdContent += `| ${index + 1} | ${op.symbol} | ${startDate} | ${endDate} | ${op.resultado.toFixed(2)} | ${op.fees.toFixed(2)} | ${op.totalQty.toFixed(8)} | ${op.entrada.length} | ${op.saida.length} |\n`;
+        const resultEmoji = op.resultado > 0 ? '✅' : op.resultado < 0 ? '❌' : '➖';
+        mdContent += `| ${index + 1} | ${op.symbol} | ${startDate} | ${endDate} | ${op.resultado.toFixed(2)} ${resultEmoji} | ${op.fees.toFixed(2)} | ${op.totalQty.toFixed(8)} | ${op.entrada.length} | ${op.saida.length} |\n`;
     });
 
     const blob = new Blob([mdContent], { type: 'text/markdown;charset=utf-8;' });
@@ -664,8 +683,8 @@ document.addEventListener('DOMContentLoaded', function() {
         lang: 'pt-BR',
         tooltipText: { one: 'dia', other: 'dias' },
         buttonText: {
-            previousMonth: `<svg width="11" height="16" xmlns="http://www.w3.org/2000/svg"><path d="M11 0v16L0 8z" fill="#1746a0"/></svg>`,
-            nextMonth: `<svg width="11" height="16" xmlns="http://www.w3.org/2000/svg"><path d="M0 0v16l11-8z" fill="#1746a0"/></svg>`,
+            previousMonth: `<svg width="11" height="16" xmlns="http://www.w.org/2000/svg"><path d="M11 0v16L0 8z" fill="#1746a0"/></svg>`,
+            nextMonth: `<svg width="11" height="16" xmlns="http://www.w.org/2000/svg"><path d="M0 0v16l11-8z" fill="#1746a0"/></svg>`,
             reset: 'Limpar',
             apply: 'Aplicar',
         },
@@ -682,6 +701,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('trade-form').style.display = 'none';
             renderLayoutAndControls(reportData);
             document.getElementById('relatorio').style.display = 'block';
+            document.getElementById('global-actions-container').style.display = 'flex';
             document.getElementById('reset-btn').style.display = 'inline-block';
         } catch (e) {
             console.error("Erro ao carregar relatório salvo.", e);
@@ -711,6 +731,7 @@ document.getElementById("reset-btn").addEventListener("click", function() {
         
         fullReportData = null;
         analysisResult = null;
+        document.getElementById('global-actions-container').style.display = 'none';
         this.style.display = 'none';
         document.getElementById('trade-form').style.display = 'block';
     }

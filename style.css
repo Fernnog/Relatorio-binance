@@ -557,7 +557,7 @@ button.button--loading::after {
 #reset-btn {
   background: #c0392b; /* Cor mais apropriada para uma ação de "reset" */
   margin-top: 0;
-  margin-left: 1em;
+  margin-left: 0;
   padding: .7em 1.5em;
   font-size: 1em;
   flex-shrink: 0; /* Impede que o botão encolha em telas menores */
@@ -566,4 +566,26 @@ button.button--loading::after {
 #reset-btn:hover {
   background: #a93226;
   opacity: 1; /* Sobrescreve o hover genérico */
+}
+
+/* --- ESTILOS PARA O NOVO CONTÊINER DE AÇÕES --- */
+#global-actions-container {
+    display: none; /* Começa oculto e é ativado via JS */
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 1.5rem;
+}
+
+#global-actions-container button {
+    margin-top: 0;
+    margin-left: 0;
+    padding: .7em 1.5em;
+    font-size: 0.95em;
+    flex-grow: 1; /* Em telas pequenas, botões ocupam o espaço */
+}
+
+@media (min-width: 600px) {
+    #global-actions-container button {
+        flex-grow: 0; /* Em telas maiores, tamanho automático */
+    }
 }
