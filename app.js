@@ -1,4 +1,5 @@
 let capitalChartInstance = null; // Para controlar a instância do gráfico
+let weeklyChartInstance = null;  // Para controlar a instância do gráfico semanal
 let fullReportData = null;       // Para armazenar o resultado completo da análise
 let datePicker = null;           // Para a instância do calendário
 let analysisResult = null;       // Para guardar o resultado da análise para a validação
@@ -155,6 +156,7 @@ function updateReportView(r) {
         </tr>
       </table>
     </div>
+    <div id="weekly-dashboard-container"></div>
     <div id="capital-chart-container"></div>
     <div id="operacoes-detalhadas"></div>
   `;
@@ -182,6 +184,7 @@ function updateReportView(r) {
     // --- FIM DA LÓGICA DE BOTÕES ---
 
   renderCapitalChart(r.capitalEvolution);
+  renderWeeklyDashboard(r.dailyBreakdown, r.calendarData, r.operacoes);
   renderOperacoesDetalhadas(r.operacoes);
   
   shareButton.onclick = function() {
@@ -355,6 +358,144 @@ function renderCapitalChart(evolutionData) {
     });
 }
 
+function renderWeeklyDashboard(dailyBreakdown, calendarData, operacoes) {
+    const container = document.getElementById('weekly-dashboard-container');
+    if (!operacoes || operacoes.length === 0 || !dailyBreakdown) {
+        container.innerHTML = '';
+        return;
+    }
+    container.innerHTML = `
+        <h2>📊 Análise Semanal</h2>
+        <div class="weekly-analytics-wrapper">
+            <div class="chart-container">
+                <h3>Resultado por Dia da Semana</h3>
+                <canvas id="weekly-chart"></canvas>
+            </div>
+            <div class="heatmap-container">
+                <h3>Calendário de Performance</h3>
+                <div id="heatmap-target"></div>
+            </div>
+        </div>
+    `;
+
+    // --- Renderiza Gráfico de Barras ---
+    if (weeklyChartInstance) {
+        weeklyChartInstance.destroy();
+    }
+    const diasDaSemanaNomes = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const ctx = document.getElementById('weekly-chart').getContext('2d');
+    weeklyChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: dailyBreakdown.map(d => d.dia.substring(0, 3)),
+            datasets: [{
+                label: 'Resultado Líquido (USDT)',
+                data: dailyBreakdown.map(d => d.resultado.toFixed(2)),
+                backgroundColor: dailyBreakdown.map(d => d.resultado >= 0 ? 'rgba(34, 197, 94, 0.7)' : 'rgba(239, 68, 68, 0.7)'),
+                borderColor: dailyBreakdown.map(d => d.resultado >= 0 ? '#16a34a' : '#dc2626'),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            plugins: { 
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const dayData = dailyBreakdown[context.dataIndex];
+                            return `Resultado: ${dayData.resultado.toFixed(2)} USDT | Trades: ${dayData.count}`;
+                        }
+                    }
+                }
+            },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    // --- Renderiza Heatmap ---
+    const heatmapTarget = document.getElementById('heatmap-target');
+    const results = Object.values(calendarData).map(d => d.resultado);
+    const maxAbsResult = Math.max(...results.map(Math.abs));
+
+    const getColorClass = (result) => {
+        if (result === 0) return 'heatmap-neutral';
+        const intensity = Math.min(Math.ceil((Math.abs(result) / maxAbsResult) * 5), 5) || 1;
+        return result > 0 ? `heatmap-win-${intensity}` : `heatmap-loss-${intensity}`;
+    };
+    
+    const firstDate = new Date(operacoes[0].entrada[0].date);
+    const lastDate = new Date(operacoes[operacoes.length - 1].saida.slice(-1)[0].date);
+
+    let html = '<table class="heatmap-table"><thead><tr><th>Dom</th><th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>Sáb</th></tr></thead><tbody>';
+    let currentDate = new Date(firstDate);
+    currentDate.setDate(currentDate.getDate() - currentDate.getDay()); // Inicia no domingo da primeira semana
+
+    while (currentDate <= lastDate) {
+        html += '<tr>';
+        for (let i = 0; i < 7; i++) {
+            const dateKey = currentDate.toISOString().split('T')[0];
+            const data = calendarData[dateKey];
+            if (currentDate >= firstDate && currentDate <= lastDate) {
+                const day = currentDate.getDate();
+                if (data) {
+                    const colorClass = getColorClass(data.resultado);
+                    const tooltip = `Data: ${currentDate.toLocaleDateString('pt-BR')}\nResultado: ${data.resultado.toFixed(2)} USDT\n${data.wins}W / ${data.losses}L`;
+                    html += `<td class="heatmap-cell ${colorClass}" title="${tooltip}">${day}</td>`;
+                } else {
+                    html += `<td class="heatmap-cell heatmap-neutral" title="Sem operações">${day}</td>`;
+                }
+            } else {
+                html += '<td class="empty"></td>';
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        html += '</tr>';
+    }
+    html += '</tbody></table>';
+    heatmapTarget.innerHTML = html;
+
+    // --- LÓGICA DE INTERATIVIDADE ---
+    const detailsTitle = document.querySelector('#details-header .detalhes-title');
+    const resetFilterBtn = document.getElementById('reset-details-filter-btn');
+
+    // --- Interatividade do Gráfico de Barras ---
+    weeklyChartInstance.options.onClick = (e, elements) => {
+        if (!elements.length) return;
+        const index = elements[0].index;
+        const dayOfWeekClicked = index;
+        const dayName = diasDaSemanaNomes[dayOfWeekClicked];
+        
+        const filteredOps = fullReportData.operacoes.filter(op => {
+            return new Date(op.entrada[0].date).getDay() === dayOfWeekClicked;
+        });
+        
+        detailsTitle.textContent = `Operações de: Todas as ${dayName}s`;
+        resetFilterBtn.style.display = 'inline-block';
+        renderOperacoesDetalhadas(filteredOps);
+    };
+    weeklyChartInstance.update();
+
+    // --- Interatividade do Heatmap ---
+    heatmapTarget.addEventListener('click', (e) => {
+        const cell = e.target.closest('.heatmap-cell');
+        if (!cell || !cell.title || cell.title.includes('Sem operações')) return;
+
+        const dateMatch = cell.title.match(/Data: (\d{2}\/\d{2}\/\d{4})/);
+        if (!dateMatch) return;
+        
+        const [day, month, year] = dateMatch[1].split('/');
+        const clickedDateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        
+        const filteredOps = fullReportData.operacoes.filter(op => {
+            return new Date(op.entrada[0].date).toISOString().split('T')[0] === clickedDateStr;
+        });
+
+        detailsTitle.textContent = `Operações de: ${dateMatch[1]}`;
+        resetFilterBtn.style.display = 'inline-block';
+        renderOperacoesDetalhadas(filteredOps);
+    });
+}
+
 function renderOperacoesDetalhadas(operacoes) {
     const container = document.getElementById('operacoes-detalhadas');
     if (!operacoes || operacoes.length === 0) {
@@ -407,7 +548,10 @@ function renderOperacoesDetalhadas(operacoes) {
     };
     
     container.innerHTML = `
-        <h3 class="detalhes-title">Detalhamento das Operações</h3>
+        <div id="details-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em;">
+            <h3 class="detalhes-title" style="margin: 0; border: none; padding: 0;">Detalhamento das Operações</h3>
+            <button id="reset-details-filter-btn" style="display: none;">Limpar Filtro e Mostrar Tudo</button>
+        </div>
         <table class="report-table details-table">
             <thead>
                 <tr>
@@ -425,6 +569,13 @@ function renderOperacoesDetalhadas(operacoes) {
 
     document.querySelectorAll('.sortable-header').forEach(header => {
         header.addEventListener('click', () => sortAndRender(header.dataset.sort));
+    });
+
+    const resetButton = document.getElementById('reset-details-filter-btn');
+    resetButton.addEventListener('click', () => {
+        document.querySelector('#details-header .detalhes-title').textContent = 'Detalhamento das Operações';
+        resetButton.style.display = 'none';
+        renderOperacoesDetalhadas(fullReportData.operacoes);
     });
 }
 
@@ -742,8 +893,8 @@ document.addEventListener('DOMContentLoaded', function() {
         lang: 'pt-BR',
         tooltipText: { one: 'dia', other: 'dias' },
         buttonText: {
-            previousMonth: `<svg width="11" height="16" xmlns="http://www.w.org/2000/svg"><path d="M11 0v16L0 8z" fill="#1746a0"/></svg>`,
-            nextMonth: `<svg width="11" height="16" xmlns="http://www.w.org/2000/svg"><path d="M0 0v16l11-8z" fill="#1746a0"/></svg>`,
+            previousMonth: `<svg width="11" height="16" xmlns="http://www.w3.org/2000/svg"><path d="M11 0v16L0 8z" fill="#1746a0"/></svg>`,
+            nextMonth: `<svg width="11" height="16" xmlns="http://www.w3.org/2000/svg"><path d="M0 0v16l11-8z" fill="#1746a0"/></svg>`,
             reset: 'Limpar',
             apply: 'Aplicar',
         },
@@ -786,6 +937,10 @@ document.getElementById("reset-btn").addEventListener("click", function() {
         if (capitalChartInstance) {
             capitalChartInstance.destroy();
             capitalChartInstance = null;
+        }
+        if (weeklyChartInstance) {
+            weeklyChartInstance.destroy();
+            weeklyChartInstance = null;
         }
         
         fullReportData = null;
