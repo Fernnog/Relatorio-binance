@@ -116,6 +116,92 @@ function analisarOperacoes(fills, capitalInicial, exclusoes = {}) {
 }
 
 /**
+ * Calcula métricas avançadas com base em uma lista de operações já processadas.
+ * @param {Array<Object>} operacoes Lista de operações completas.
+ * @returns {Object} Um objeto contendo as métricas avançadas calculadas.
+ */
+function calcularMetricasAvancadas(operacoes) {
+    if (operacoes.length === 0) return {};
+
+    const diasDaSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const metricas = {
+        duracaoMediaGanhos: 0,
+        duracaoMediaPerdas: 0,
+        resultadoPorDia: {},
+        resultadoPorHora: {},
+        impactoMedioTaxas: 0,
+        rMultipleMedioGanhos: 0,
+        rMultipleMedioPerdas: 0
+    };
+
+    let totalDuracaoGanhos = 0, countGanhos = 0;
+    let totalDuracaoPerdas = 0, countPerdas = 0;
+    let totalImpactoTaxas = 0, countGanhosParaTaxas = 0;
+    let totalRMultiplesGanhos = 0;
+    let totalRMultiplesPerdas = 0;
+
+    // Pré-cálculo da Perda Média para o R-Multiple
+    const perdasResultados = operacoes.filter(op => op.resultado < 0).map(op => op.resultado);
+    const perdaMediaAbs = perdasResultados.length > 0 ? Math.abs(perdasResultados.reduce((a, b) => a + b, 0) / perdasResultados.length) : 0;
+    
+    operacoes.forEach(op => {
+        const dataEntrada = new Date(op.entrada[0].date);
+        const dataSaida = new Date(op.saida[op.saida.length - 1].date);
+        const duracaoMs = dataSaida - dataEntrada;
+        const duracaoMinutos = duracaoMs / (1000 * 60);
+
+        // 1. Análise de Duração
+        if (op.resultado > 0) {
+            totalDuracaoGanhos += duracaoMinutos;
+            countGanhos++;
+        } else if (op.resultado < 0) {
+            totalDuracaoPerdas += duracaoMinutos;
+            countPerdas++;
+        }
+
+        // 2. Análise Temporal
+        const dia = diasDaSemana[dataEntrada.getDay()];
+        const hora = dataEntrada.getHours();
+        metricas.resultadoPorDia[dia] = (metricas.resultadoPorDia[dia] || 0) + op.resultado;
+        metricas.resultadoPorHora[hora] = (metricas.resultadoPorHora[hora] || 0) + op.resultado;
+
+        // 3. Análise de Risco (R-Multiple)
+        if (perdaMediaAbs > 0) {
+            const rMultiple = op.resultado / perdaMediaAbs;
+            if (rMultiple > 0) {
+                totalRMultiplesGanhos += rMultiple;
+            } else {
+                totalRMultiplesPerdas += rMultiple;
+            }
+        }
+         
+        // 4. Análise de Custo
+        if (op.resultado > 0) {
+            const ganhoBruto = op.resultado + op.fees;
+            if(ganhoBruto > 0) {
+              totalImpactoTaxas += (op.fees / ganhoBruto) * 100;
+              countGanhosParaTaxas++;
+            }
+        }
+    });
+
+    if (countGanhos > 0) {
+        metricas.duracaoMediaGanhos = totalDuracaoGanhos / countGanhos;
+        metricas.rMultipleMedioGanhos = totalRMultiplesGanhos / countGanhos;
+    }
+    if (countPerdas > 0) {
+        metricas.duracaoMediaPerdas = totalDuracaoPerdas / countPerdas;
+        metricas.rMultipleMedioPerdas = totalRMultiplesPerdas / countPerdas;
+    }
+    if (countGanhosParaTaxas > 0) {
+        metricas.impactoMedioTaxas = totalImpactoTaxas / countGanhosParaTaxas;
+    }
+
+    return metricas;
+}
+
+
+/**
  * Calcula todas as métricas de performance com base em uma lista de operações já processadas.
  * @param {Array<Object>} operacoes Lista de operações completas.
  * @param {number} capitalInicial O capital inicial.
@@ -167,6 +253,8 @@ function recalcularResumo(operacoes, capitalInicial) {
     const prejuizoMedio = loss > 0 ? (absPerdas / loss) : 0;
     const payoffRatio = prejuizoMedio > 0 ? (lucroMedio / prejuizoMedio) : 0;
     const fatorLucro = absPerdas > 0 ? (ganhos / absPerdas) : 0;
+    
+    const advancedMetrics = calcularMetricasAvancadas(operacoes);
 
     return {
         total: operacoes.length, wins: win, losses: loss, neutros: neutro,
@@ -179,6 +267,7 @@ function recalcularResumo(operacoes, capitalInicial) {
         payoffRatio: payoffRatio.toFixed(2),
         fatorLucro: fatorLucro.toFixed(2),
         maxDrawdown: (maxDrawdown * 100).toFixed(2),
+        advancedMetrics, // <-- NOVO DADO ADICIONADO AO RETORNO
         operacoes, capitalEvolution
     };
 }

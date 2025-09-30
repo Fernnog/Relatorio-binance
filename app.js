@@ -238,6 +238,65 @@ function updateReportView(r) {
     mdContent += `| Drawdown Máximo | ${r.maxDrawdown}% |\n`;
     mdContent += `| Total de Taxas | ${r.fees} USDT |\n\n`;
 
+    // --- INÍCIO DA SEÇÃO DE MÉTRICAS AVANÇADAS ---
+    mdContent += `\n## 🔬 Análise de Métricas Avançadas\n\n`;
+
+    const rAdv = r.advancedMetrics; // Acessa as métricas avançadas
+
+    // Helper para formatar a duração de forma mais legível
+    const formatDuration = (minutes) => {
+        if (!minutes || minutes === 0) return 'N/A';
+        if (minutes < 1) return `${(minutes * 60).toFixed(0)} seg`;
+        if (minutes < 60) return `${minutes.toFixed(1)} min`;
+        const hours = Math.floor(minutes / 60);
+        const remMinutes = Math.round(minutes % 60);
+        return `${hours}h ${remMinutes}m`;
+    };
+
+    mdContent += `### ⏱️ Análise de Duração da Operação\n`;
+    mdContent += `*Revela se há um viés para segurar operações perdedoras por mais tempo que as vencedoras.*\n\n`;
+    mdContent += `| Métrica | Valor |\n`;
+    mdContent += `|---|---|\n`;
+    mdContent += `| Duração Média (Ganhos) | ${formatDuration(rAdv.duracaoMediaGanhos)} |\n`;
+    mdContent += `| Duração Média (Perdas) | ${formatDuration(rAdv.duracaoMediaPerdas)} |\n\n`;
+
+    mdContent += `### 📆 Análise de Performance Temporal\n`;
+    mdContent += `*Mostra se a performance varia com dias ou horários específicos.*\n\n`;
+    
+    if (Object.keys(rAdv.resultadoPorDia).length > 0) {
+        mdContent += `**Resultado por Dia da Semana**\n`;
+        mdContent += `| Dia | Resultado Líquido (USDT) |\n`;
+        mdContent += `|---|---:|\n`;
+        Object.entries(rAdv.resultadoPorDia)
+              .sort((a,b) => b[1] - a[1]) // Ordena do mais lucrativo para o menos
+              .forEach(([dia, resultado]) => {
+          mdContent += `| ${dia} | **${resultado.toFixed(2)}** |\n`;
+        });
+        mdContent += `\n`;
+    }
+    
+    if (Object.keys(rAdv.resultadoPorHora).length > 0) {
+        mdContent += `**Resultado por Hora do Dia (Início da Operação)**\n`;
+        mdContent += `| Hora | Resultado Líquido (USDT) |\n`;
+        mdContent += `|---|---:|\n`;
+        Object.entries(rAdv.resultadoPorHora)
+              .sort((a,b) => b[1] - a[1]) // Ordena do mais lucrativo para o menos
+              .forEach(([hora, resultado]) => {
+          const horaStr = hora.toString().padStart(2, '0');
+          mdContent += `| ${horaStr}:00 - ${horaStr}:59 | **${resultado.toFixed(2)}** |\n`;
+        });
+        mdContent += `\n`;
+    }
+
+    mdContent += `### ⚖️ Análise de Risco e Custo\n`;
+    mdContent += `*Padroniza os resultados e quantifica o impacto real dos custos.*\n\n`;
+    mdContent += `| Métrica | Valor |\n`;
+    mdContent += `|---|---|\n`;
+    mdContent += `| R-Multiple Médio (Ganhos) | ${rAdv.rMultipleMedioGanhos.toFixed(2)}R |\n`;
+    mdContent += `| R-Multiple Médio (Perdas) | ${rAdv.rMultipleMedioPerdas.toFixed(2)}R |\n`;
+    mdContent += `| Impacto Percentual Médio das Taxas | ${rAdv.impactoMedioTaxas.toFixed(2)}% do Lucro Bruto |\n\n`;
+    // --- FIM DA SEÇÃO DE MÉTRICAS AVANÇADAS ---
+
     mdContent += `## 📋 Detalhamento de Todas as Operações\n\n`;
     mdContent += `| # | 🏷️ Símbolo | ➡️ Data Entrada | ⬅️ Data Saída | 💰 Resultado (USDT) | 💸 Taxas (USDT) | Qtd. Total | Nº Compras | Nº Vendas |\n`;
     mdContent += `|---|---|---|---|---:|---:|---:|---:|---:|\n`;
