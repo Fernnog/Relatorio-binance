@@ -589,3 +589,102 @@ button.button--loading::after {
         flex-grow: 0; /* Em telas maiores, tamanho automático */
     }
 }
+/* --- INÍCIO DOS ESTILOS PARA O PAINEL SEMANAL --- */
+#weekly-dashboard-container {
+  margin-top: 2.5em;
+  padding-top: 1.5em;
+  border-top: 1px solid #e0e4eb;
+}
+
+#weekly-dashboard-container h2 {
+  color: #1746a0;
+  margin-bottom: 1.5rem;
+  font-size: 1.5em;
+  text-align: center;
+}
+
+.weekly-analytics-wrapper {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.5em;
+}
+
+@media (min-width: 900px) {
+  .weekly-analytics-wrapper {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.heatmap-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.heatmap-table th {
+  font-weight: bold;
+  padding: 0.5em 0;
+  font-size: 0.9em;
+}
+
+.heatmap-table td {
+  border: 1px solid #e0e4eb;
+  height: 50px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 0.85em;
+  color: #333;
+  position: relative;
+}
+
+.heatmap-table td.empty {
+  background-color: transparent;
+  border: none;
+}
+
+/* Escala de Cores do Heatmap */
+.heatmap-neutral { background-color: #f8f9fa; color: #6c757d; }
+.heatmap-win-1 { background-color: #dcfce7; } /* Lucro Leve */
+.heatmap-win-2 { background-color: #bbf7d0; }
+.heatmap-win-3 { background-color: #86efac; }
+.heatmap-win-4 { background-color: #4ade80; }
+.heatmap-win-5 { background-color: #22c55e; color: white; } /* Lucro Forte */
+
+.heatmap-loss-1 { background-color: #fee2e2; } /* Prejuízo Leve */
+.heatmap-loss-2 { background-color: #fecaca; }
+.heatmap-loss-3 { background-color: #fca5a5; }
+.heatmap-loss-4 { background-color: #f87171; }
+.heatmap-loss-5 { background-color: #ef4444; color: white; } /* Prejuízo Forte */
+/* --- FIM DOS ESTILOS PARA O PAINEL SEMANAL --- */
+
+/* --- INÍCIO DOS ESTILOS DE INTERATIVIDADE --- */
+.heatmap-table td.heatmap-cell {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.heatmap-table td.heatmap-cell:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 15px rgba(23, 70, 160, 0.4);
+  z-index: 10;
+}
+
+#weekly-chart {
+  cursor: pointer;
+}
+
+#reset-details-filter-btn {
+  background: #c0392b;
+  color: white;
+  border: none;
+  padding: 0.5em 1em;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: bold;
+}
+
+#reset-details-filter-btn:hover {
+  background: #a93226;
+}
+/* --- FIM DOS ESTILOS DE INTERATIVIDADE --- */
